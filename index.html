@@ -211,6 +211,8 @@ td.n.c{color:var(--amber)}
 .wrow.bump{animation:wbump 2.4s ease}
 @keyframes wbump{0%{background:rgba(255,201,90,.45)}100%{background:rgba(255,255,255,.04)}}
 @media (max-width:560px){.wrow{grid-template-columns:1fr auto auto}.wrow .s{display:none}}
+.foldbtn{margin-left:10px;align-self:center;background:rgba(166,255,92,.12);border:1px solid rgba(166,255,92,.45);color:#a6ff5c;border-radius:10px;padding:8px 14px;font:600 13px "Chakra Petch",sans-serif;cursor:pointer;white-space:nowrap}
+.foldbtn:hover{background:rgba(166,255,92,.22)}.foldbtn[aria-expanded="true"] span{display:inline-block;transform:rotate(180deg)}
 </style>
 <style>body{margin:0}img{max-width:100%}</style>
 </head>
@@ -293,12 +295,14 @@ td.n.c{color:var(--amber)}
   <section class="shop panel" id="lab">
     <div class="shophead">
       <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Room</h2><p>Juno hunts for printables people are buying right now that we can deliver as instant downloads. Best ideas first. Tap Build it and the Product Building room makes it.</p></div>
-      <div class="vitals"><div class="vital"><small>New ideas</small><b id="sIdeas">0</b></div></div>
+      <div class="vitals"><div class="vital"><small>New ideas</small><b id="sIdeas">0</b></div><button class="foldbtn" id="labFold" aria-expanded="false" aria-controls="labBody">Show ideas <span aria-hidden="true">&#9662;</span></button></div>
     </div>
+    <div id="labBody" hidden>
     <div class="makebar"><button id="btnResearch" class="primary">Run research now</button><p class="note" id="labRun"></p></div>
     <p class="labsum" id="labSummary"></p>
     <p class="note" id="labNote"></p>
     <div class="ideas" id="ideaList"></div>
+    </div>
   </section>
 
   <section class="shop panel" id="shop">
@@ -1546,6 +1550,9 @@ $("pmEtsySend").addEventListener("click",async()=>{
 (function(){ const m=new URLSearchParams(location.search).get("etsy"); if(m){ setTimeout(()=>{ $("makeNote").textContent= m==="connected"?"Your Etsy shop is connected.":m; },300); history.replaceState(null,"",location.pathname+"#shop"); } })();
 if(window.claude && window.claude.use){ window.claude.use("downloads").then(x=>{ dl=x; }).catch(()=>{}); }
 
+(function(){ const b=$("labFold"), body=$("labBody"); let open=false; try{ open=localStorage.getItem("moneyland-lab-open")==="1"; }catch(e){}
+  const set=o=>{ body.hidden=!o; b.setAttribute("aria-expanded",String(o)); b.innerHTML=(o?"Hide ideas":"Show ideas")+' <span aria-hidden="true">&#9662;</span>'; try{ localStorage.setItem("moneyland-lab-open",o?"1":"0"); }catch(e){} };
+  set(open); b.addEventListener("click",()=>set(body.hidden)); })();
 /* ---------- boot ---------- */
 placeAtHome(); resize();
 if(!S.log.length) log("Moneyland comes online. Day 1 begins.","big");
