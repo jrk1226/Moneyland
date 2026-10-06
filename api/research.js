@@ -50,8 +50,15 @@ module.exports = async (req, res) => {
       + "Our current products: " + have + ".\nIdeas already suggested before (do not repeat or closely copy): " + seen + ".\nOur sales so far: " + sold + ".\n\n"
       + "Reply with only JSON: {\"summary\": \"3-4 plain sentences on what you found and what to make next\", \"ideas\": [{\"title\": \"product name, max 60 chars\", \"category\": \"kids\"|\"planner\"|\"party\"|\"wallart\"|\"other\", \"fits\": true if the shop can make it with the list above, false if it needs something else, \"format\": \"what the product physically is, e.g. 40 page PDF activity book, set of 3 art prints, SVG cut files\", \"buyer\": \"who buys it, max 40 chars\", \"why\": \"why it will sell, max 160 chars\", \"evidence\": \"what proves demand, with numbers, max 220 chars\", \"demand\": \"High\"|\"Medium\"|\"Low\", \"competition\": \"High\"|\"Medium\"|\"Low\", \"price_range\": \"what similar listings charge, e.g. $6-$12\", \"price_hint\": number, \"score\": 1-10}]}. "
       + "Give the 4 best ideas, ranked best first. Up to 1 of them may have fits false when it is a great opportunity the owner should hear about. Score 8 or more only when demand is proven. No emojis.";
-    const { data: out, blocks } = await claudeJSON({ tier: "smart", prompt, maxTokens: 6000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }] });
-    const sources = [];
+    // Claude and ChatGPT research at the same time; Claude cross-checks both lists and keeps the strongest ideas.
+    const BO = require("./_bestof"), O = require("./_openai");
+    const [cl, gp] = await Promise.all([
+      claudeJSON({ tier: "smart", prompt, maxTokens: 6000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }] }),
+      O.configured() ? BO.gptResearch(prompt).catch(() => null) : Promise.resolve(null)]);
+    const { blocks } = cl;
+    let out = cl.data;
+    if (gp && gp.data && (gp.data.ideas || []).length) { try { out = await BO.mergeIdeas(cl.data, gp.data); } catch (e) {} }
+    const sources = (gp && gp.sources ? gp.sources.slice(0, 4) : []);
     blocks.forEach(b => { if (b.type === "web_search_tool_result" && Array.isArray(b.content)) b.content.forEach(r => { if (r.url && sources.length < 12 && !sources.some(s => s.url === r.url)) sources.push({ url: r.url, title: r.title || r.url }); }); });
     const run = (await db("research_runs", { method: "POST", body: [{ trigger: isCron ? "auto" : "manual", focus, summary: String(out.summary || "").slice(0, 1200), ok: true }] }))[0];
     const lvl = v => ["High", "Medium", "Low"].includes(v) ? v : null;
@@ -61,6 +68,7 @@ module.exports = async (req, res) => {
       buyer: String(i.buyer || "").slice(0, 80), why: String(i.why || "").slice(0, 400), evidence: String(i.evidence || "").slice(0, 500), sources,
       demand: lvl(i.demand), competition: lvl(i.competition), price_range: String(i.price_range || "").slice(0, 40),
       price_hint: Number(i.price_hint) || null, score: Math.max(1, Math.min(10, parseInt(i.score, 10) || 5)),
+      found_by: ["claude", "chatgpt", "both"].includes(i.from) ? i.from : "claude",
     })).filter(i => i.title);
     const saved = ideas.length ? await db("ideas", { method: "POST", body: ideas }) : [];
     return res.status(200).json({ ok: true, run, ideas: saved });

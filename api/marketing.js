@@ -43,7 +43,9 @@ async function makePins() {
   const prompt = "You write Pinterest pins for Bright Page Prints, an Etsy shop of printable digital downloads. For each product write a pin that ranks in Pinterest search: a keyword-rich title (max 90 characters), a helpful description (2-3 sentences, max 400 characters, natural keywords people search for, end with 'Instant download on Etsy.'), and alt text describing the image (max 200 characters). Do not use hashtags, emojis, brand names or trademarks. Products:\n"
     + need.map(p => "id " + p.id + ": " + p.spec.title + " - " + (p.spec.subtitle || "") + " (tags: " + ((p.spec.listing || {}).tags || []).join(", ") + ")").join("\n")
     + "\nReply with only JSON: {\"pins\": [{\"id\": number, \"title\": \"...\", \"description\": \"...\", \"alt_text\": \"...\"}]}";
-  const out = (await claudeJSON({ tier: "quick", prompt, maxTokens: 3000 })).data;
+  let out = (await claudeJSON({ tier: "quick", prompt, maxTokens: 3000 })).data;
+  out = (await require("./_bestof").bestOf({ task: "Pinterest pin text", brief: "titles and descriptions that rank in Pinterest search and make people click, accurate to each product, no hashtags or emojis",
+    claudeAnswer: out, gptPrompt: prompt, valid: x => Array.isArray(x.pins) && x.pins.length })).answer;
   const rows = [];
   (out.pins || []).forEach(x => { const p = need.find(n => n.id === Number(x.id)); if (!p) return;
     [1, 2].forEach(style => rows.push({ product_id: p.id, style, status: "ready", title: String(x.title || p.spec.title).slice(0, 100), description: String(x.description || "").slice(0, 500), alt_text: String(x.alt_text || "").slice(0, 500), link: "https://www.etsy.com/listing/" + p.etsy_listing_id })); });
@@ -80,7 +82,9 @@ async function shopText(force) {
   const live = await db("products?select=spec->>title&etsy_state=eq.active&limit=30");
   const prompt = "Write the Etsy shop text for Bright Page Prints, a shop of printable instant downloads (kids activity books, planners, party printables, wall art). Today is " + new Date().toDateString() + ". Our products: " + live.map(r => r.title).join("; ") + ".\n"
     + "Return only JSON: {\"title\": \"shop headline, max 55 characters\", \"announcement\": \"shop announcement, 2-4 short friendly sentences, mention what is new or seasonal, max 500 characters\", \"digital_sale_message\": \"thank-you note buyers see after purchase, how to download from Etsy Purchases, print tips, invite a review, max 500 characters\"}. No emojis, no promises we cannot keep, no discounts unless told.";
-  const t = (await claudeJSON({ tier: "smart", prompt, maxTokens: 1200 })).data;
+  let t = (await claudeJSON({ tier: "smart", prompt, maxTokens: 1200 })).data;
+  t = (await require("./_bestof").bestOf({ task: "Etsy shop headline, announcement and buyer thank-you note", brief: "friendly, clear, seasonal, makes shoppers trust the shop and buy, within the length limits",
+    claudeAnswer: t, gptPrompt: prompt, valid: x => x.title && x.announcement && x.digital_sale_message })).answer;
   const text = { month, title: String(t.title || "").slice(0, 55), announcement: String(t.announcement || "").slice(0, 5000), digital_sale_message: String(t.digital_sale_message || "").slice(0, 5000), applied: false };
   try {
     await putShop(text);
@@ -114,7 +118,9 @@ async function tuneSEO(max) {
       + "Product: " + p.spec.title + " - " + (p.spec.subtitle || "") + "\nCurrent title: " + L.etsyTitle + "\nCurrent tags: " + (L.tags || []).join(", ")
       + "\nRules: title max 140 characters, front-load the main search phrase in the first 50 characters, natural wording, describe only what the product really contains; 13 tags, each max 20 characters, real search phrases, no repeats; no trademarks or brand names. Reply with only JSON: {\"title\": \"...\", \"tags\": [13 strings], \"why\": \"one sentence\"}";
     try {
-      const out = (await claudeJSON({ tier: "smart", prompt, maxTokens: 3000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }] })).data;
+      let out = (await claudeJSON({ tier: "smart", prompt, maxTokens: 3000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }] })).data;
+      out = (await require("./_bestof").bestOf({ task: "a better Etsy title and tags for a slow listing (" + p.spec.title + ")", brief: "matches what buyers really type into Etsy search, main phrase first, 100 percent accurate to the product",
+        claudeAnswer: out, gptPrompt: prompt.replace("Use web search to see", "Think about"), valid: x => x.title && Array.isArray(x.tags) && x.tags.length >= 8 })).answer;
       const title = String(out.title || "").slice(0, 140), tags = (out.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);
       if (title.length < 20 || tags.length < 8) throw new Error("the AI answer was too short");
       const { etsy, link } = require("./_etsy"); const l = await link();
