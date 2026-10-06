@@ -3,7 +3,6 @@
 const { db, claudeJSON } = require("./_lib");
 
 const SECTIONS = { kids: "Kids Activities", planner: "Planners", party: "Party Printables", wallart: "Wall Art", other: "More Printables" };
-const KEYS = /planner|calendar|agenda|journal|worksheet|education|learning|school|coloring|colouring|activit|game|puzzle|party|invitation|print|wall|decor|sticker|label|banner|topper|card|bingo|certificate|chart|template|paper|baby|kid|christmas|holiday|halloween|easter|birthday|shower|wedding|stationery|organiz|art/i;
 
 let flatCache = null;
 async function flatTaxonomy(etsy) {
@@ -15,28 +14,40 @@ async function flatTaxonomy(etsy) {
   return (flatCache = flat);
 }
 
+// Where each kind of product is allowed to go. Craft-supply and unrelated categories are never offered.
+const TREES = {
+  planner: [/^Paper & Party Supplies > Paper\b/],
+  party: [/^Paper & Party Supplies > Party Supplies\b/, /^Paper & Party Supplies > Paper > (Greeting Cards|Invitations|Stationery)\b/],
+  kids: [/^Toys & Games > (Toys > Learning & School|Games & Puzzles)\b/, /^Books, Movies & Music > Books\b/, /^Paper & Party Supplies > Paper\b/],
+  wallart: [/^Art & Collectibles > (Prints|Drawing & Illustration|Painting)\b/],
+};
+const PIN = { planner: /^Paper & Party Supplies > Paper > Calendars & Planners$/, wallart: /^Art & Collectibles > Prints > Digital Prints$/ };
+
 async function pickCategory(etsy, spec) {
-  const flat = await flatTaxonomy(etsy);
-  const cands = flat.filter(t => KEYS.test(t.path) && /^(Paper & Party Supplies|Art & Collectibles|Toys & Games|Home & Living|Books, Movies & Music|Craft Supplies & Tools)/.test(t.path)).slice(0, 400);
-  const prompt = "Pick the single most specific Etsy category for this printable digital download, so it shows up for the right buyer searches.\n"
-    + "Product: " + spec.title + " - " + (spec.subtitle || "") + " (type: " + (spec.category || "") + ")\n"
+  const flat = await flatTaxonomy(etsy), kind = TREES[spec.category] ? spec.category : "planner";
+  // Planners and wall art have one clearly right home: no AI guess.
+  if (PIN[kind]) { const hit = flat.find(t => PIN[kind].test(t.path)); if (hit) return hit; }
+  const cands = flat.filter(t => TREES[kind].some(r => r.test(t.path))).slice(0, 300);
+  if (!cands.length) return null;
+  const prompt = "Pick the single most specific Etsy category for this printable digital download (paper pages the buyer prints at home), so it shows up for the right buyer searches.\n"
+    + "Product: " + spec.title + " - " + (spec.subtitle || "") + "\n"
     + "Categories (id: path):\n" + cands.map(c => c.id + ": " + c.path).join("\n")
-    + "\nPrefer a deep, specific category over a broad one. Reply with only JSON: {\"id\": number, \"why\": \"short\"}";
-  const out = (await claudeJSON({ tier: "quick", prompt, maxTokens: 300 })).data;
-  const hit = cands.find(c => c.id === Number(out.id));
-  return hit || null;
+    + "\nChoose a category that describes exactly what the buyer gets. Prefer specific over broad. Reply with only JSON: {\"id\": number, \"why\": \"short\"}";
+  const out = (await claudeJSON({ tier: "smart", prompt, maxTokens: 400 })).data;
+  return cands.find(c => c.id === Number(out.id)) || null;
 }
 
 async function pickProperties(etsy, taxId, spec) {
   const d = await etsy("/application/seller-taxonomy/nodes/" + taxId + "/properties", { noAuth: true });
-  const props = (d.results || []).filter(p => p.supports_attributes !== false && (p.possible_values || []).length);
+  // Never guess colors (the AI cannot see the pages) or claim personalization / materials we do not offer.
+  const props = (d.results || []).filter(p => p.supports_attributes !== false && (p.possible_values || []).length && !/colou?r|personali|material|craft type|made from|sustainab/i.test(p.name + " " + (p.display_name || "")));
   if (!props.length) return [];
-  const prompt = "Fill in Etsy listing attributes for this printable digital download. Only choose values that are clearly true for the product; skip anything unsure. Attributes help buyers find it with search filters.\n"
+  const prompt = "Fill in Etsy listing attributes for this printable digital download" + (spec.category === "wallart" ? " (printable wall art in several sizes)" : " (portrait letter-size pages printed at home)") + ". Only choose values that are clearly true from the title and description; skip anything unsure, and skip attributes that do not apply. Attributes help buyers find it with search filters.\n"
     + "Product: " + spec.title + " - " + (spec.subtitle || "") + ". Theme: " + (spec.theme || spec.palette || "") + ". Tags: " + (((spec.listing || {}).tags) || []).join(", ") + "\n"
     + "Attributes (property_id | name | max values | allowed values as value_id=name):\n"
     + props.map(p => p.property_id + " | " + (p.display_name || p.name) + " | " + (p.is_multivalued ? (p.max_values_allowed || 5) : 1) + " | " + p.possible_values.slice(0, 120).map(v => v.value_id + "=" + v.name).join("; ")).join("\n")
     + "\nReply with only JSON: {\"set\": [{\"property_id\": number, \"value_ids\": [numbers]}]}";
-  const out = (await claudeJSON({ tier: "quick", prompt, maxTokens: 1500 })).data;
+  const out = (await claudeJSON({ tier: "smart", prompt, maxTokens: 1500 })).data;
   const res = [];
   (out.set || []).forEach(s => {
     const p = props.find(x => x.property_id === Number(s.property_id)); if (!p) return;
@@ -81,6 +92,9 @@ async function checkup(p, note) {
       fix.category = { id: cat.id, path: cat.path }; done.push("category: " + cat.path); }
   }
   if (fix.category && !fix.attributes) {
+    // Start clean: remove any attributes already on the listing, then set only the ones we are sure of.
+    try { const cur = await etsy(base + "/properties");
+      for (const x of (cur.results || [])) { try { await etsy(base + "/properties/" + x.property_id, { method: "DELETE" }); } catch (e) {} } } catch (e) {}
     const prs = await pickProperties(etsy, fix.category.id, spec), ok = [];
     for (const pr of prs) { try { await setProperty(etsy, base, pr); ok.push(pr.name + ": " + pr.values.join(", ")); } catch (e) {} }
     fix.attributes = ok; if (ok.length) done.push(ok.length + " attributes (" + ok.join("; ").slice(0, 200) + ")");
