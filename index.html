@@ -161,6 +161,9 @@ td.n.c{color:var(--amber)}
 .ihead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .ihead b{font-family:var(--display);font-size:15px;letter-spacing:.02em;flex:1 1 160px}
 .ihead .chip{margin-left:0}
+.imeta{display:flex;flex-wrap:wrap;gap:4px 14px;font-family:var(--mono);font-size:11px;color:var(--muted)}
+.imeta b{font-weight:500}
+.lv.High,.lv.cLow{color:#a6ff5c}.lv.Medium,.lv.cMedium{color:var(--amber)}.lv.Low,.lv.cHigh{color:var(--magenta)}
 .iscore{font-family:var(--mono);font-size:12px;color:var(--amber)}
 .iwhy{margin:0;font-size:13px}
 .iev{margin:0;font-size:12px;color:var(--muted)}
@@ -250,7 +253,7 @@ td.n.c{color:var(--amber)}
 
   <section class="shop panel" id="lab">
     <div class="shophead">
-      <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Lab</h2><p>Juno researches Etsy every morning and brings you product ideas. Tap Build it and Production makes the product.</p></div>
+      <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Lab</h2><p>Juno hunts for printables people are buying right now that we can deliver as instant downloads. Best ideas first. Tap Build it and Production makes the product.</p></div>
       <div class="vitals"><div class="vital"><small>New ideas</small><b id="sIdeas">0</b></div></div>
     </div>
     <div class="makebar"><button id="btnResearch" class="primary">Run research now</button><p class="note" id="labRun"></p></div>
@@ -1317,15 +1320,15 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",(
 function ago(ts){ const m=Math.round((Date.now()-new Date(ts).getTime())/60000); return m<60?m+" min ago":m<1440?Math.round(m/60)+" hours ago":Math.round(m/1440)+" days ago"; }
 function renderLab(){
   const box=$("ideaList"); box.innerHTML="";
-  $("labRun").textContent= LASTRUN ? "Last research: "+ago(LASTRUN.ran_at)+(LASTRUN.trigger==="daily"?" (daily run)":"") : (MODE==="db"?"No research yet. It runs every morning at about 7:40, or tap Run research now.":"");
+  $("labRun").textContent= (LASTRUN ? "Last research: "+ago(LASTRUN.ran_at)+(LASTRUN.trigger==="manual"?" (you ran it)":" (automatic)")+". " : (MODE==="db"?"No research yet. ":""))+(MODE==="db"?"Juno researches automatically 4 times a day: about 1:40 AM, 7:40 AM, 1:40 PM and 7:40 PM.":"");
   $("labSummary").textContent= LASTRUN&&LASTRUN.summary ? LASTRUN.summary : "";
-  const list=IDEAS.filter(i=>i.status!=="passed");
+  const list=IDEAS.filter(i=>i.status!=="passed").sort((a,b)=>(a.status==="new"?0:1)-(b.status==="new"?0:1)||(b.score||0)-(a.score||0)||b.id-a.id);
   $("sIdeas").textContent=list.filter(i=>i.status==="new").length;
   if(!list.length){ box.innerHTML='<p class="note">'+(MODE==="db"?"No ideas yet.":"Ideas show up here once the Research Lab is running on the website.")+'</p>'; return; }
   list.forEach(i=>{
     const d=document.createElement("div"); d.className="idea";
     const src=(i.sources||[]).slice(0,4).map(s=>'<a href="'+encodeURI(s.url)+'" target="_blank" rel="noopener">'+esc(String(s.title||s.url).slice(0,60))+'</a>').join("");
-    d.innerHTML='<div class="ihead"><b></b><span class="chip ok">'+esc(CATS[i.category]||i.category||"")+'</span><span class="iscore">'+(i.score||"-")+'/10</span></div><p class="iwhy"></p><p class="iev"></p><div class="isrc">'+src+'</div><div class="pmbtns"></div>';
+    d.innerHTML='<div class="ihead"><b></b><span class="chip ok">'+esc(CATS[i.category]||i.category||"")+'</span><span class="iscore">'+(i.score||"-")+'/10</span></div><div class="imeta">'+(i.buyer?'<span>Buyer: '+esc(i.buyer)+'</span>':'')+(i.demand?'<span>Demand: <b class="lv '+i.demand+'">'+esc(i.demand)+'</b></span>':'')+(i.competition?'<span>Competition: <b class="lv c'+i.competition+'">'+esc(i.competition)+'</b></span>':'')+(i.price_range?'<span>Selling for: '+esc(i.price_range)+'</span>':'')+'</div><p class="iwhy"></p><p class="iev"></p><div class="isrc">'+src+'</div><div class="pmbtns"></div>';
     d.querySelector("b").textContent=i.title; d.querySelector(".iwhy").textContent=i.why||""; d.querySelector(".iev").textContent=(i.evidence?"Evidence: "+i.evidence:"")+(i.price_hint?"  |  Suggested price: $"+Number(i.price_hint).toFixed(2):"");
     const btns=d.querySelector(".pmbtns");
     if(i.status==="new"){ const b=document.createElement("button"); b.className="good"; b.textContent="Build it"; b.onclick=()=>buildIdea(i,b); btns.appendChild(b);
