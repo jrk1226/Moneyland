@@ -32,6 +32,15 @@ module.exports = async (req, res) => {
     if (!settings.autopilot) return res.status(200).json({ skipped: "autopilot is off" });
     const started = Date.now(), timeLeft = () => 285000 - (Date.now() - started);
 
+    // 0. Make sure the starter catalog is loaded (design engine v2).
+    const starters = await db("products?select=id&source=eq.starter&limit=1");
+    if (!starters.length) {
+      const { SEEDS } = require("../lib/seeds"), B = require("../lib/design/book");
+      const rows = SEEDS.slice().reverse().map(s0 => { const s = JSON.parse(JSON.stringify(s0)); try { s.pageCount = s.category === "wallart" ? s.prints.length : B.build(s).pages.length; } catch (e) {} return { status: "review", spec: s, price: Number(s.listing.price) || 5, source: "starter", design_version: 2 }; });
+      await db("products", { method: "POST", prefer: "return=minimal", body: rows });
+      await note("built", "Loaded the " + rows.length + " starter products in the new design.");
+    }
+
     // 1. Publish: products waiting for approval, checked by AI, up to the daily limit.
     const etsyReady = etsyConfigured() && !!((await link()) || {}).refresh_token;
     if (settings.publish_on === false) done.push("publishing switched off");
@@ -59,7 +68,7 @@ module.exports = async (req, res) => {
     } else done.push("etsy not connected");
 
     // 2. Build: keep the line full from the best research ideas.
-    const waiting = await db("products?select=id&status=in.(review,approved)&qa_note=is.null");
+    const waiting = await db("products?select=id&status=in.(review,approved)&qa_note=is.null&source=neq.starter");
     if (settings.build_on !== false && waiting.length < 4 && timeLeft() > 200000) {
       const idea = (await db("ideas?select=*&status=eq.new&fits=eq.true&score=gte.8&order=score.desc,id.desc&limit=1"))[0];
       if (idea) {
