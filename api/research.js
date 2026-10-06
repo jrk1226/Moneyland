@@ -21,7 +21,7 @@ module.exports = async (req, res) => {
     const runs = await db("research_runs?select=ran_at,focus&order=id.desc&limit=4");
     const last = runs[0];
     const hours = last ? (Date.now() - new Date(last.ran_at).getTime()) / 3600000 : 99;
-    if (hours < (isCron ? 4.5 : 0.25)) return res.status(429).json({ error: "Research ran " + Math.round(hours * 60) + " minutes ago. Try again a little later.", code: "rate_limited" });
+    if (hours < (isCron ? 0.75 : 0.25)) return res.status(429).json({ error: "Research ran " + Math.round(hours * 60) + " minutes ago. Try again a little later.", code: "rate_limited" });
     const usedFocus = runs.map(r => r.focus);
     const focus = FOCUS.find(f => !usedFocus.includes(f)) || FOCUS[new Date().getUTCHours() % FOCUS.length];
 
