@@ -10,11 +10,13 @@ const SHOP_URL = "https://www.etsy.com/shop/BrightPagePrintsShop";
 async function note(text) { try { await db("autopilot_log", { method: "POST", prefer: "return=minimal", body: [{ kind: "marketing", text: String(text).slice(0, 500) }] }); } catch (e) {} }
 
 function coverOf(spec) {
+  if (spec.category === "artpack") { const { Page } = require("../lib/design/core"), p = new Page(800, 600); p.els.push(require("../lib/design/artgoods").listingPhotos(spec)[0].replace(/^<svg[^>]*>/, "").replace(/<\/svg>$/, "")); return p; }
   if (spec.category === "wallart") { const WA = require("../lib/design/wallart"); return WA.artSVG((spec.prints || [])[0] || {}, spec.palette, "2x3").page; }
   const B = require("../lib/design/book"); return B.build(spec).pages[0].page;
 }
 async function liveCovers(n) {
   const rows = await db("products?select=spec&etsy_state=eq.active&order=etsy_views.desc,id.desc&limit=" + (n || 3));
+  for (const r of rows) { try { await require("./_artgoods").hydrate(r.spec); } catch (e) {} }
   return rows.map(r => { try { return coverOf(r.spec); } catch (e) { return null; } }).filter(Boolean);
 }
 async function assetPNG(name, w) {
@@ -29,7 +31,8 @@ async function assetPNG(name, w) {
 async function pinPNG(pinRow, w) {
   const prod = (await db("products?select=spec&id=eq." + pinRow.product_id))[0];
   if (!prod) throw new Error("Product not found");
-  const spec = prod.spec, n = spec.category === "wallart" ? 0 : (spec.pageCount || 0);
+  const spec = prod.spec; await require("./_artgoods").hydrate(spec);
+  const n = spec.category === "wallart" ? 0 : (spec.pageCount || 0);
   const p = BR.pin(spec, coverOf(spec), n, pinRow.style || 1);
   return Buffer.from(OUT.png(p.svg(p.bg), w || 1000));
 }

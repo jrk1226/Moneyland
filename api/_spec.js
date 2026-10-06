@@ -58,6 +58,17 @@ Seasonal wall art should come from the palette and the quote text (for example "
 WALL ART JSON (printable art, sold as 5 ratio files of 300 DPI JPGs):
 {"category":"wallart","palette":"${Object.keys(WA.PAL).join('"|"')}","title":"max 60 chars","subtitle":"max 90","prints":[{"style":"${WA.STYLES.join('"|"')}","seed":"any short word","text":"optional short quote, only for quote style or a short caption","font":"serif"|"script"|"sans","icon":"icon name, only for nursery"}] (1-6 prints; sets of 3-6 sell best, keep one palette per set),"listing":{...same as above}}
 
+ART PACK JSON (the artwork is drawn by ChatGPT, then checked; buyers are crafters and small businesses who use the files in their own products):
+{"category":"artpack","kind":"clipart"|"stickers"|"sublimation"|"labels","style":"art style words used for every picture so the set matches, e.g. soft watercolor, cute kawaii, vintage botanical, bold retro, hand-drawn line art","title":"max 60 chars","subtitle":"max 90","items":[{"subject":"exactly what ONE picture shows, concrete and visual, max 200 chars","name":"short file name"}],"listing":{...same as above}}
+- clipart: 15-30 items around one theme (e.g. 24 watercolor fall pumpkins and leaves). Transparent PNGs.
+- stickers: 12-24 items, bold simple shapes that work as die-cut stickers (planner stickers, cute animals, holiday icons).
+- sublimation: add "product":"tumbler"|"shirt"|"mug"; 1-4 designs. Tumbler and mug designs are full seamless wraps (patterns, scenes); shirt designs are one centered graphic. Words inside a design only if short and spelled out in the subject.
+- labels: add "shape":"round"|"rect" and "labelText":["placeholder product name","placeholder detail line"]; 1-3 designs (decorative borders with an empty middle, e.g. for candles, jars, soap, bakery boxes). The buyer types their own text in the editable PDF.
+Never ask for brand names, logos, characters, celebrities or copyrighted designs. Prices: clipart $4-9, stickers $3-6, sublimation $3-6 per design or $8-15 bundle, labels $4-8.
+
+ADULT COLORING BOOK JSON: {"category":"coloring","theme":"minimal","title":"...","subtitle":"...","pages":[{"template":"coloring","subjects":[{"subject":"an intricate mandala of ocean waves and seashells","title":"Ocean Mandala"}, ...]}],"listing":{...}}
+- 20-40 subjects for adults: mandalas, detailed animals, florals, cozy scenes, patterns. Each subject is drawn as detailed line art. Price $5-10.
+
 WHAT SELLS (from research): bundles beat single pages 3-5 times. Aim for:
 - Kids activity books: 25-45 pages mixing 5-8 activity types (use sheets, count and letters to reach the page count). Preschool busy books, holiday activity packs and coloring books are the strongest.
 - Coloring books: 12-16 coloring subjects plus a few puzzles.

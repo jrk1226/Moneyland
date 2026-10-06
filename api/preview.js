@@ -10,7 +10,9 @@ module.exports = async (req, res) => {
   try {
     const prod = (await db("products?select=id,spec,price,status&id=eq." + parseInt(q.id, 10)))[0];
     if (!prod) return res.status(404).json({ error: "Product not found." });
-    const spec = prod.spec || {}, kind = q.kind || "info", w = Math.max(120, Math.min(1600, parseInt(q.w, 10) || 600)), i = parseInt(q.i, 10) || 0;
+    const spec = prod.spec || {};
+    await require("./_artgoods").hydrate(spec);
+    const kind = q.kind || "info", w = Math.max(120, Math.min(1600, parseInt(q.w, 10) || 600)), i = parseInt(q.i, 10) || 0;
     if (kind === "info") return res.status(200).json({ pages: R.previewList(spec), photos: R.photoCount(spec), wallart: R.isArt(spec), description: R.listingDesc(spec) });
     if (kind === "page" || kind === "photo") {
       const png = kind === "page" ? R.previewPNG(spec, i, w) : R.photoPNG(spec, i, w);

@@ -9,7 +9,7 @@ module.exports = async (req, res) => {
   try {
     if (req.method === "GET") {
       const [products, ideas, runs, settings, plog] = await Promise.all([
-        db("products?select=*&status=neq.archived&order=id.desc&limit=500"),
+        db("products?select=*&status=not.in.(archived,building)&order=id.desc&limit=500"),
         db("ideas?select=*&status=neq.passed&order=id.desc&limit=60"),
         db("research_runs?select=*&order=id.desc&limit=1"),
         db("settings?id=eq.1"),

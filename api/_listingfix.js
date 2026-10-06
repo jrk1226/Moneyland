@@ -2,7 +2,7 @@
 // attributes (age, holiday, occasion, subject...) and files it in a shop section. Runs once per listing.
 const { db, claudeJSON } = require("./_lib");
 
-const SECTIONS = { kids: "Kids Activities", planner: "Planners", party: "Party Printables", wallart: "Wall Art", other: "More Printables" };
+const SECTIONS = { kids: "Kids Activities", planner: "Planners", party: "Party Printables", wallart: "Wall Art", artpack: "Clipart and Designs", coloring: "Coloring Books", other: "More Printables" };
 
 let flatCache = null;
 async function flatTaxonomy(etsy) {
@@ -20,6 +20,8 @@ const TREES = {
   party: [/^Paper & Party Supplies > Party Supplies\b/, /^Paper & Party Supplies > Paper > (Greeting Cards|Invitations|Stationery)\b/],
   kids: [/^Toys & Games > (Toys > Learning & School|Games & Puzzles)\b/, /^Books, Movies & Music > Books\b/, /^Paper & Party Supplies > Paper\b/],
   wallart: [/^Art & Collectibles > (Prints|Drawing & Illustration|Painting)\b/],
+  artpack: [/^Art & Collectibles > Drawing & Illustration\b/, /^Paper & Party Supplies > Paper > Stickers, Labels & Tags\b/, /^Craft Supplies & Tools > (Patterns & How To|Visual Arts|Stamps|Screen Printing)\b/],
+  coloring: [/^Books, Movies & Music > Books\b/, /^Art & Collectibles > Drawing & Illustration\b/, /^Paper & Party Supplies > Paper\b/],
 };
 const PIN = { planner: /^Paper & Party Supplies > Paper > Calendars & Planners$/, wallart: /^Art & Collectibles > Prints > Digital Prints$/ };
 

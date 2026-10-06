@@ -112,6 +112,14 @@ async function check(prev) {
   else if (!sb.ok) add("studio", "Photo Studio", "warn", "Last job had a problem: " + String(sb.note).slice(0, 120) + " " + cover);
   else add("studio", "Photo Studio", "ok", cover);
 
+  // 10b. Art Studio (pictures for art packs and coloring books)
+  const ab2 = beats.artworks, building = await db("products?select=id&status=eq.building");
+  const usage = (await db("ai_usage?day=eq." + new Date().toISOString().slice(0, 10)))[0];
+  const pics = (usage ? usage.images : 0) + " of " + (st.max_images_per_day == null ? 80 : st.max_images_per_day) + " ChatGPT pictures used today.";
+  if (!ab2) add("artworks", "Art Studio", "warn", "Waiting for its first check-in. " + pics);
+  else if (ago(ab2.at) > 30 * MIN && st.build_on !== false) add("artworks", "Art Studio", "bad", "Has not run since " + mins(ago(ab2.at)) + ". " + pics);
+  else add("artworks", "Art Studio", ab2.ok ? "ok" : "warn", (building.length ? building.length + " product" + (building.length > 1 ? "s" : "") + " getting pictures. " : "Nothing waiting for pictures. ") + pics + (ab2.ok ? "" : " Last problem: " + String(ab2.note).slice(0, 100)));
+
   // 11. Pinterest (optional)
   try { const P = require("./_pinterest"), pl = P.configured() ? await P.plink() : null;
     add("pinterest", "Pinterest", !P.configured() || !(pl && pl.refresh_token) ? "off" : "ok", !P.configured() ? "Not set up yet." : !(pl && pl.refresh_token) ? "App keys added, not connected yet." : "Connected" + (pl.username ? " as " + pl.username : "") + "."); } catch (e) {}

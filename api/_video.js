@@ -18,6 +18,7 @@ function ffmpegPath() {
 
 // What the video shows, taken from the product itself.
 function storyboard(spec) {
+  if (spec.category === "artpack") return { photos: require("../lib/design/artgoods").listingPhotos(spec), pages: [], bg: "#F6F3EE", accent: "#C8673F" };
   const isArt = spec.category === "wallart";
   if (isArt) {
     const WA = require("../lib/design/wallart");
@@ -107,6 +108,7 @@ async function flipThrough(enc, pageSvgs, bgHex, framesPer) {
 }
 // Builds the MP4 (about 12 seconds). An optional lifestyle photo opens the video.
 async function listingVideo(spec, opts = {}) {
+  await require("./_artgoods").hydrate(spec);
   const sb = storyboard(spec);
   const photoPNG = i => Buffer.from(OUT.png(sb.photos[Math.min(sb.photos.length - 1, i)], 1700));
   const opener = opts.lifestyle && opts.lifestyle[0] ? opts.lifestyle[0] : photoPNG(0);

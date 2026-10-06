@@ -42,6 +42,8 @@ async function etsy(path, opts = {}) {
   return data;
 }
 const CAT_WORDS = {
+  artpack: ["digital", "drawing & illustration", "stickers", "labels & tags", "clip art"],
+  coloring: ["coloring books", "books", "drawing & illustration"],
   kids: ["worksheets", "learning & school", "educational", "activity books", "coloring books", "games & puzzles", "paper & party supplies"],
   wallart: ["prints", "digital prints", "art & collectibles", "wall decor"],
   planner: ["calendars & planners", "planners", "paper", "paper & party supplies"],
@@ -67,6 +69,7 @@ async function publishProduct(prod, opts = {}) {
   if (!l.shop_id) throw new Error("No Etsy shop on this account yet. Finish opening the shop on Etsy first.");
   const spec = prod.spec || {}, L = spec.listing || {};
   const R = require("./_render");
+  await require("./_artgoods").hydrate(spec);
   const description = opts.description || R.listingDesc(spec);
   const title = String(opts.title || L.etsyTitle || spec.title).slice(0, 140);
   const tags = (L.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);

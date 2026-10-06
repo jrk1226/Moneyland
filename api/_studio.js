@@ -139,6 +139,7 @@ async function place(base, layers) {
   return sharp(base).composite(ready).png().toBuffer();
 }
 function productPages(spec) {
+  if (spec.category === "artpack") return require("../lib/design/artgoods").listingPhotos(spec).slice(0, 3).map((svg, i) => ({ svg, land: true, label: "Photo " + (i + 1) }));
   const B = require("../lib/design/book");
   const b = B.build(spec), pages = b.pages.filter(c => c.label !== "What's inside" && !c.key);
   return pages.map(c => ({ svg: c.page.svg(c.page.bg), land: c.page.w > c.page.h, label: c.label }));
@@ -177,6 +178,7 @@ async function wallLayout(spec, scenePng) {
 // Makes up to 2 lifestyle photos for a product. Returns [{png, url, note}] (may be empty).
 async function lifestylePhotos(prod, deadline) {
   const spec = prod.spec || {}, mood = moodOf(spec), wall = mood === "wall";
+  await require("./_artgoods").hydrate(spec);
   const scenes = await sceneFor(mood, 2, Date.now() < deadline - 120000);
   const out = [];
   for (let i = 0; i < scenes.length && i < 2; i++) {
@@ -199,6 +201,7 @@ async function lifestylePhotos(prod, deadline) {
 async function replacePhotos(prod, lifestyle) {
   const { etsy, link } = require("./_etsy");
   const R = require("./_render");
+  await require("./_artgoods").hydrate(prod.spec);
   const l = await link(), lid = prod.etsy_listing_id, base = "/application/shops/" + l.shop_id + "/listings/" + lid;
   const designed = R.listingImages(prod.spec).map(b => ({ buf: b, type: "image/png", name: "photo.png" }));
   const ls = lifestyle.map(x => ({ buf: x.jpg, type: "image/jpeg", name: "lifestyle.jpg" }));
@@ -236,7 +239,7 @@ async function upgradeListing(prod, deadline, note) {
   }
   // Etsy rule: say in the description that AI tools were used
   if (!media.disclosed) {
-    try { const { etsy, link } = require("./_etsy"), R = require("./_render"), l = await link();
+    try { await require("./_artgoods").hydrate(prod.spec); const { etsy, link } = require("./_etsy"), R = require("./_render"), l = await link();
       await etsy("/application/shops/" + l.shop_id + "/listings/" + prod.etsy_listing_id, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ description: R.listingDesc(prod.spec).slice(0, 60000) }).toString() });
       media.disclosed = true; } catch (e) { media.disclose_error = String(e.message).slice(0, 160); media.disclose_tries = (media.disclose_tries || 0) + 1; }
   }

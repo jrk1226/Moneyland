@@ -20,6 +20,7 @@ async function gptNotes(pngs, spec) {
 }
 async function qaCheck(spec) {
   const R = require("./_render"), content = [], pngs = [];
+  try { await require("./_artgoods").hydrate(spec); } catch (e) { return { pass: null, problems: "could not load the pictures: " + e.message }; }
   try {
     const n = R.previewList(spec).length, picks = [0, 1, Math.floor(n / 2), n - 1].filter((v, i, a) => v >= 0 && v < n && a.indexOf(v) === i);
     picks.forEach(i => pngs.push(R.previewPNG(spec, i, 700)));
@@ -103,7 +104,7 @@ module.exports = async (req, res) => {
     } else done.push("etsy not connected");
 
     // 2. Build: keep the line full from the best research ideas.
-    const waiting = await db("products?select=id&status=in.(review,approved)&qa_note=is.null&source=neq.starter");
+    const waiting = await db("products?select=id&status=in.(review,approved,building)&qa_note=is.null&source=neq.starter");
     if (settings.build_on !== false && waiting.length < 4 && timeLeft() > 200000) {
       const idea = (await db("ideas?select=*&status=eq.new&fits=eq.true&score=gte.8&build_fails=lt.2&order=score.desc,id.desc&limit=1"))[0];
       if (idea) {
