@@ -3,7 +3,7 @@
 //   ANTHROPIC_API_KEY  (required)  your key from console.anthropic.com
 //   MONEYLAND_CODE     (optional)  an access code; when set, the site asks for it once
 const MODELS = { chat: "claude-haiku-4-5-20251001", plan: "claude-sonnet-5-5" };
-const MAX_TOKENS = { chat: 350, plan: 1500 };
+const MAX_TOKENS = { chat: 350, plan: 4000 };
 const LIMIT = 40, WINDOW_MS = 10 * 60 * 1000; // per visitor, per 10 minutes
 const hits = new Map();
 
