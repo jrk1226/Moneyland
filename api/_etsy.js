@@ -2,7 +2,7 @@
 const crypto = require("crypto");
 const { db } = require("./_lib");
 const API = "https://api.etsy.com/v3";
-const SCOPES = "listings_r listings_w transactions_r shops_r";
+const SCOPES = "listings_r listings_w transactions_r shops_r shops_w";
 
 function keystring() { return process.env.ETSY_KEYSTRING || ""; }
 function apiKeyHeader() { return keystring() + ":" + (process.env.ETSY_SHARED_SECRET || ""); }

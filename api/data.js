@@ -42,7 +42,7 @@ module.exports = async (req, res) => {
     if (body.action === "settings.set") {
       const f = body.fields || {}, patch = { updated_at: new Date().toISOString() };
       if (typeof f.autopilot === "boolean") patch.autopilot = f.autopilot;
-      ["research_on", "build_on", "publish_on", "sales_on"].forEach(k => { if (typeof f[k] === "boolean") patch[k] = f[k]; });
+      ["research_on", "build_on", "publish_on", "sales_on", "marketing_on"].forEach(k => { if (typeof f[k] === "boolean") patch[k] = f[k]; });
       if (f.rooms && typeof f.rooms === "object") { const r = {}; Object.entries(f.rooms).forEach(([k, v]) => { if (/^[a-z]{2,12}$/.test(k)) r[k] = !!v; }); patch.rooms = r; }
       if (f.max_listings_per_day != null) patch.max_listings_per_day = Math.max(0, Math.min(20, parseInt(f.max_listings_per_day, 10) || 0));
       const rows = await db("settings?id=eq.1", { method: "PATCH", body: patch });
