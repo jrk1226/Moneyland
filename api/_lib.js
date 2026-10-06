@@ -68,4 +68,8 @@ async function claudeJSON(opts) {
     return { data: parseJSON(fix.text), blocks: out.blocks };
   }
 }
-module.exports = { cfg, codeOk, readBody, db, claude, parseJSON, claudeJSON };
+// Each timed job checks in here so the health checker can tell it is still running.
+async function beat(job, ok, note) {
+  try { await db("heartbeats?on_conflict=job", { method: "POST", prefer: "resolution=merge-duplicates,return=minimal", body: [{ job, at: new Date().toISOString(), ok: ok !== false, note: String(note || "").slice(0, 300) }] }); } catch (e) {}
+}
+module.exports = { cfg, codeOk, readBody, db, claude, parseJSON, claudeJSON, beat };

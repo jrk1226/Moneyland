@@ -1,6 +1,6 @@
 // Autopilot: runs every 10 minutes. Builds products from the best research ideas, has the AI check each one,
 // and publishes the ones that pass to Etsy, within a daily limit. Everything it does is written to the log.
-const { cfg, db, claudeJSON } = require("./_lib");
+const { cfg, db, claudeJSON, beat } = require("./_lib");
 const { etsyConfigured, link, publishProduct } = require("./_etsy");
 const { buildProducts } = require("./_produce");
 
@@ -31,7 +31,7 @@ module.exports = async (req, res) => {
   try {
     if (!c.db || !c.ai) return res.status(200).json({ skipped: "keys not set" });
     const settings = (await db("settings?id=eq.1"))[0] || { autopilot: true, max_listings_per_day: 5 };
-    if (!settings.autopilot) return res.status(200).json({ skipped: "autopilot is off" });
+    if (!settings.autopilot) { await beat("autopilot", true, "switched off"); return res.status(200).json({ skipped: "autopilot is off" }); }
     const started = Date.now(), timeLeft = () => 285000 - (Date.now() - started);
 
     // 0. Make sure the starter catalog is loaded (design engine v2).
@@ -79,9 +79,11 @@ module.exports = async (req, res) => {
         catch (e) { await note("error", "Could not build \"" + idea.title + "\": " + (e.message || e)); }
       }
     }
+    await beat("autopilot", true, done.join(", "));
     return res.status(200).json({ ok: true, done });
   } catch (e) {
     await note("error", "Autopilot stopped: " + (e.message || e));
+    await beat("autopilot", false, e.message || e);
     return res.status(500).json({ error: String(e.message || e), done });
   }
 };

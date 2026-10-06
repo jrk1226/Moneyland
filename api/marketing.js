@@ -1,7 +1,7 @@
 // Marketing Room: brand kit images, Pinterest pins, shop announcement, listing check-ups (category, attributes, sections) and search tuning of slow listings.
 // GET ?kind=asset&name=...  |  GET ?kind=pin&id=...  |  GET ?do=cron (Vercel cron)  |  GET ?do=pconnect
 // POST {action: status | run | shoptext.apply}
-const { cfg, codeOk, readBody, db, claudeJSON } = require("./_lib");
+const { cfg, codeOk, readBody, db, claudeJSON, beat } = require("./_lib");
 const P = require("./_pinterest");
 const BR = require("../lib/design/brand");
 const OUT = require("../lib/design/output");
@@ -136,7 +136,8 @@ module.exports = async (req, res) => {
     if (req.method === "GET" && q.do === "cron") {
       if (!/vercel-cron/i.test(String(req.headers["user-agent"] || ""))) return res.status(401).json({ error: "Not allowed." });
       if (!c.db || !c.ai) return res.status(200).json({ skipped: "not set up" });
-      return res.status(200).json(await runJob(false));
+      const out = await runJob(false); await beat("marketing", true, JSON.stringify(out).slice(0, 280));
+      return res.status(200).json(out);
     }
     if (req.method === "GET" && q.do === "pconnect") {
       if (!codeOk(req, { code: q.code })) return res.status(401).send("Wrong or missing access code.");
