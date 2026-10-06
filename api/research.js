@@ -18,6 +18,7 @@ module.exports = async (req, res) => {
   const body = req.method === "POST" ? readBody(req) : {};
   if (!isCron && !(req.method === "POST" && codeOk(req, body))) return res.status(401).json({ error: "Not allowed.", code: "needs_code" });
   try {
+    if (isCron) { const st = (await db("settings?id=eq.1"))[0]; if (st && st.research_on === false) return res.status(200).json({ skipped: "Research Lab is switched off" }); }
     const runs = await db("research_runs?select=ran_at,focus&order=id.desc&limit=4");
     const last = runs[0];
     const hours = last ? (Date.now() - new Date(last.ran_at).getTime()) / 3600000 : 99;

@@ -26,7 +26,8 @@ module.exports = async (req, res) => {
 
     // 1. Publish: products waiting for approval, checked by AI, up to the daily limit.
     const etsyReady = etsyConfigured() && !!((await link()) || {}).refresh_token;
-    if (etsyReady) {
+    if (settings.publish_on === false) done.push("publishing switched off");
+    else if (etsyReady) {
       const since = new Date(Date.now() - 24 * 3600000).toISOString();
       const today = await db("products?select=id&auto_published=eq.true&published_at=gte." + since);
       let room = Math.max(0, (settings.max_listings_per_day || 5) - today.length);
@@ -51,7 +52,7 @@ module.exports = async (req, res) => {
 
     // 2. Build: keep the line full from the best research ideas.
     const waiting = await db("products?select=id&status=in.(review,approved)&qa_note=is.null");
-    if (waiting.length < 4 && timeLeft() > 150000) {
+    if (settings.build_on !== false && waiting.length < 4 && timeLeft() > 150000) {
       const idea = (await db("ideas?select=*&status=eq.new&score=gte.8&order=score.desc,id.desc&limit=1"))[0];
       if (idea) {
         try { const made = await buildProducts({ ideaId: idea.id }); await note("built", "Built \"" + (made[0] && made[0].spec.title) + "\" from research idea \"" + idea.title + "\""); done.push("built idea " + idea.id); }
