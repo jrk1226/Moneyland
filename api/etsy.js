@@ -13,17 +13,26 @@ async function syncSales() {
     (d.results || []).forEach(rc => (rc.transactions || []).forEach(t => { if (t.listing_id) counts[t.listing_id] = (counts[t.listing_id] || 0) + (t.quantity || 1); }));
     if (!d.results || d.results.length < 100) break; offset += 100;
   }
-  const products = await db("products?select=id,etsy_listing_id,sales,status,etsy_state&etsy_listing_id=not.is.null");
-  let changed = 0;
+  const products = await db("products?select=id,etsy_listing_id,sales,status,etsy_state,etsy_views,etsy_favs&etsy_listing_id=not.is.null");
+  let changed = 0, views = 0, favs = 0;
+  const now = new Date().toISOString(), history = [];
   for (const p of products) {
     const patch = {};
     const sold = counts[p.etsy_listing_id] || 0;
     if (sold !== p.sales) patch.sales = sold;
-    try { const li = await etsy("/application/shops/" + l.shop_id + "/listings/" + p.etsy_listing_id); if (li && li.state && li.state !== p.etsy_state) { patch.etsy_state = li.state; if (li.state === "active") patch.status = "listed"; } } catch (e) {}
+    try {
+      const li = await etsy("/application/listings/" + p.etsy_listing_id);
+      if (li && li.state && li.state !== p.etsy_state) { patch.etsy_state = li.state; if (li.state === "active") patch.status = "listed"; }
+      const v = Number(li && li.views) || 0, f = Number(li && li.num_favorers) || 0;
+      views += v; favs += f;
+      if (v !== p.etsy_views || f !== p.etsy_favs || sold !== p.sales) { patch.etsy_views = v; patch.etsy_favs = f; history.push({ product_id: p.id, views: v, favs: f, sales: sold }); }
+      patch.stats_at = now;
+    } catch (e) {}
     if (Object.keys(patch).length) { await db("products?id=eq." + p.id, { method: "PATCH", body: patch }); changed++; }
   }
+  if (history.length) { try { await db("listing_stats", { method: "POST", prefer: "return=minimal", body: history }); } catch (e) {} }
   await saveLink({ last_sync: new Date().toISOString() });
-  return { changed, listingsWithSales: Object.keys(counts).length };
+  return { changed, listingsWithSales: Object.keys(counts).length, views, favs };
 }
 
 const handler = async (req, res) => {
