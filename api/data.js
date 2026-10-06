@@ -8,12 +8,14 @@ module.exports = async (req, res) => {
   if (!codeOk(req, body)) return res.status(401).json({ error: "Wrong or missing access code.", code: "needs_code", configured: c });
   try {
     if (req.method === "GET") {
-      const [products, ideas, runs] = await Promise.all([
+      const [products, ideas, runs, settings, plog] = await Promise.all([
         db("products?select=*&order=id.desc&limit=500"),
         db("ideas?select=*&status=neq.passed&order=id.desc&limit=60"),
         db("research_runs?select=*&order=id.desc&limit=1"),
+        db("settings?id=eq.1"),
+        db("autopilot_log?select=*&order=id.desc&limit=12"),
       ]);
-      return res.status(200).json({ configured: c, products, ideas, lastRun: runs[0] || null });
+      return res.status(200).json({ configured: c, products, ideas, lastRun: runs[0] || null, settings: settings[0] || null, autolog: plog });
     }
     if (req.method !== "POST") return res.status(405).json({ error: "Use GET or POST." });
     const id = parseInt(body.id, 10);
@@ -35,6 +37,13 @@ module.exports = async (req, res) => {
       const rows = body.items.slice(0, 20).filter(p => p && p.template && p.title).map(p => ({ spec: p, price: Math.min(15, Math.max(1.5, Number(p.listing && p.listing.price) || 4)), source: "starter" }));
       const saved = rows.length ? await db("products", { method: "POST", body: rows }) : [];
       return res.status(200).json({ ok: true, products: saved });
+    }
+    if (body.action === "settings.set") {
+      const f = body.fields || {}, patch = { updated_at: new Date().toISOString() };
+      if (typeof f.autopilot === "boolean") patch.autopilot = f.autopilot;
+      if (f.max_listings_per_day != null) patch.max_listings_per_day = Math.max(0, Math.min(20, parseInt(f.max_listings_per_day, 10) || 0));
+      const rows = await db("settings?id=eq.1", { method: "PATCH", body: patch });
+      return res.status(200).json({ ok: true, settings: rows[0] });
     }
     if (body.action === "idea.pass" && id) {
       await db("ideas?id=eq." + id, { method: "PATCH", body: { status: "passed" } });

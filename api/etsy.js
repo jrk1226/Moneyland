@@ -1,26 +1,7 @@
 // Moneyland <-> Etsy: connect the shop, send products to Etsy as drafts, and count real sales.
 const { cfg, codeOk, readBody, db } = require("./_lib");
-const { SCOPES, keystring, etsyConfigured, link, saveLink, newPkce, accessToken, etsy } = require("./_etsy");
+const { SCOPES, keystring, etsyConfigured, link, saveLink, newPkce, accessToken, etsy, publishProduct } = require("./_etsy");
 
-const CAT_WORDS = {
-  kids: ["worksheets", "learning & school", "educational", "activity books", "games & puzzles", "paper & party supplies"],
-  planner: ["calendars & planners", "planners", "paper", "paper & party supplies"],
-  party: ["party games", "party supplies", "games", "paper & party supplies"],
-};
-let taxCache = null;
-async function pickTaxonomy(category) {
-  if (!taxCache) {
-    const d = await etsy("/application/seller-taxonomy/nodes", { noAuth: true });
-    const flat = []; const walk = (n, path) => { const p = path.concat(n.name); flat.push({ id: n.id, name: n.name, path: p.join(" > ").toLowerCase(), leaf: !(n.children && n.children.length) }); (n.children || []).forEach(c => walk(c, p)); };
-    (d.results || []).forEach(n => walk(n, []));
-    taxCache = flat;
-  }
-  for (const w of CAT_WORDS[category] || CAT_WORDS.planner) {
-    const hit = taxCache.find(t => t.name.toLowerCase() === w) || taxCache.find(t => t.path.includes(w));
-    if (hit) return hit.id;
-  }
-  return taxCache[0] && taxCache[0].id;
-}
 function blobFrom(b64, type) { return new Blob([Buffer.from(String(b64 || ""), "base64")], { type }); }
 
 async function syncSales() {
@@ -76,31 +57,12 @@ const handler = async (req, res) => {
     }
     if (!c.db || !etsyConfigured()) return res.status(503).json({ error: "Add the Etsy keys in Vercel first.", code: "not_configured" });
     if (body.action === "sync") return res.status(200).json(await syncSales());
-    if (body.action === "draft") {
-      const id = parseInt(body.productId, 10);
-      const prod = (await db("products?id=eq." + id))[0];
+    if (body.action === "draft" || body.action === "publish") {
+      const prod = (await db("products?id=eq." + parseInt(body.productId, 10)))[0];
       if (!prod) return res.status(404).json({ error: "Product not found." });
-      const { link: l } = await accessToken();
-      if (!l.shop_id) throw new Error("No Etsy shop on this account yet. Finish opening the shop on Etsy first.");
-      const spec = prod.spec || {}, L = spec.listing || {};
-      const title = String(body.title || L.etsyTitle || spec.title).slice(0, 140);
-      const tags = (L.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);
-      const listing = { quantity: 999, title, description: String(body.description || spec.title).slice(0, 60000), price: Number(prod.price),
-        who_made: "i_did", when_made: "made_to_order", taxonomy_id: await pickTaxonomy(spec.category), type: "download", is_supply: false, should_auto_renew: true, tags };
-      let created;
-      if (prod.etsy_listing_id) created = { listing_id: prod.etsy_listing_id };
-      else {
-        try { created = await etsy("/application/shops/" + l.shop_id + "/listings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(listing) }); }
-        catch (e) { // fall back to form encoding
-          const form = new URLSearchParams(); Object.entries(listing).forEach(([k, v]) => form.append(k, Array.isArray(v) ? v.join(",") : String(v)));
-          created = await etsy("/application/shops/" + l.shop_id + "/listings", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form.toString() });
-        }
-        await db("products?id=eq." + id, { method: "PATCH", body: { etsy_listing_id: created.listing_id, etsy_state: "draft" } });
-      }
-      const lid = created.listing_id, base = "/application/shops/" + l.shop_id + "/listings/" + lid;
-      if (body.image) { const f = new FormData(); f.append("image", blobFrom(body.image, "image/png"), "listing-photo.png"); f.append("rank", "1"); await etsy(base + "/images", { method: "POST", body: f }); }
-      if (body.pdf) { const f = new FormData(); f.append("file", blobFrom(body.pdf, "application/pdf"), body.fileName || "printable.pdf"); f.append("name", body.fileName || "printable.pdf"); f.append("rank", "1"); await etsy(base + "/files", { method: "POST", body: f }); }
-      return res.status(200).json({ ok: true, listing_id: lid, edit_url: "https://www.etsy.com/your/shops/me/listing-editor/edit/" + lid });
+      const r = await publishProduct(prod, { activate: body.action === "publish", reupload: !!prod.etsy_listing_id && !!body.pdf, title: body.title, description: body.description,
+        pdf: body.pdf, image: body.image, fileName: body.fileName });
+      return res.status(200).json(Object.assign({ ok: true }, r));
     }
     return res.status(400).json({ error: "Unknown action." });
   } catch (e) {

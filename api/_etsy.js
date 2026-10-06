@@ -41,4 +41,59 @@ async function etsy(path, opts = {}) {
   if (!r.ok) { const e = new Error("Etsy " + r.status + ": " + ((data && (data.error || data.message)) || text).toString().slice(0, 300)); e.status = r.status; throw e; }
   return data;
 }
-module.exports = { SCOPES, keystring, etsyConfigured, link, saveLink, newPkce, tokenRequest, accessToken, etsy };
+const CAT_WORDS = {
+  kids: ["worksheets", "learning & school", "educational", "activity books", "games & puzzles", "paper & party supplies"],
+  planner: ["calendars & planners", "planners", "paper", "paper & party supplies"],
+  party: ["party games", "party supplies", "games", "paper & party supplies"],
+};
+let taxCache = null;
+async function pickTaxonomy(category) {
+  if (!taxCache) {
+    const d = await etsy("/application/seller-taxonomy/nodes", { noAuth: true });
+    const flat = []; const walk = (n, p) => { const path = p.concat(n.name); flat.push({ id: n.id, name: n.name, path: path.join(" > ").toLowerCase() }); (n.children || []).forEach(c => walk(c, path)); };
+    (d.results || []).forEach(n => walk(n, []));
+    taxCache = flat;
+  }
+  for (const w of CAT_WORDS[category] || CAT_WORDS.planner) {
+    const hit = taxCache.find(t => t.name.toLowerCase() === w) || taxCache.find(t => t.path.includes(w));
+    if (hit) return hit.id;
+  }
+  return taxCache[0] && taxCache[0].id;
+}
+// Creates (or reuses) the Etsy listing for a product, uploads the photo and PDF, and optionally makes it live.
+async function publishProduct(prod, opts = {}) {
+  const { link: l } = await accessToken();
+  if (!l.shop_id) throw new Error("No Etsy shop on this account yet. Finish opening the shop on Etsy first.");
+  const spec = prod.spec || {}, L = spec.listing || {};
+  let pdf = opts.pdf, image = opts.image, description = opts.description;
+  if (!pdf || !image || !description) {
+    const R = require("./_render");
+    pdf = pdf || R.pdfBuffer(spec); image = image || R.listingPNG(spec); description = description || R.listingDesc(spec);
+  }
+  const fileName = (opts.fileName || String(spec.title || "printable").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".pdf");
+  const title = String(opts.title || L.etsyTitle || spec.title).slice(0, 140);
+  const tags = (L.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);
+  let lid = prod.etsy_listing_id, isNew = false;
+  if (!lid) {
+    const listing = { quantity: 999, title, description: String(description).slice(0, 60000), price: Number(prod.price), who_made: "i_did", when_made: "made_to_order",
+      taxonomy_id: await pickTaxonomy(spec.category), type: "download", is_supply: false, should_auto_renew: true, tags };
+    let created;
+    try { created = await etsy("/application/shops/" + l.shop_id + "/listings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(listing) }); }
+    catch (e) { const form = new URLSearchParams(); Object.entries(listing).forEach(([k, v]) => form.append(k, Array.isArray(v) ? v.join(",") : String(v)));
+      created = await etsy("/application/shops/" + l.shop_id + "/listings", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: form.toString() }); }
+    lid = created.listing_id; isNew = true;
+    await db("products?id=eq." + prod.id, { method: "PATCH", body: { etsy_listing_id: lid, etsy_state: "draft" } });
+  }
+  const base = "/application/shops/" + l.shop_id + "/listings/" + lid;
+  if (isNew || opts.reupload) {
+    const toBuf = x => Buffer.isBuffer(x) ? x : Buffer.from(String(x), "base64");
+    let f = new FormData(); f.append("image", new Blob([toBuf(image)], { type: "image/png" }), "listing-photo.png"); f.append("rank", "1"); await etsy(base + "/images", { method: "POST", body: f });
+    f = new FormData(); f.append("file", new Blob([toBuf(pdf)], { type: "application/pdf" }), fileName); f.append("name", fileName); f.append("rank", "1"); await etsy(base + "/files", { method: "POST", body: f });
+  }
+  if (opts.activate) {
+    await etsy(base, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ state: "active" }).toString() });
+    await db("products?id=eq." + prod.id, { method: "PATCH", body: { status: "listed", etsy_state: "active", published_at: new Date().toISOString(), auto_published: !!opts.auto } });
+  }
+  return { listing_id: lid, edit_url: "https://www.etsy.com/your/shops/me/listing-editor/edit/" + lid };
+}
+module.exports = { pickTaxonomy, publishProduct, SCOPES, keystring, etsyConfigured, link, saveLink, newPkce, tokenRequest, accessToken, etsy };
