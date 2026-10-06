@@ -199,6 +199,18 @@ td.n.c{color:var(--amber)}
 .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 .idea.outside{border-color:rgba(255,201,90,.55)!important}.idea.outside .chip{background:rgba(255,201,90,.18);color:#ffc95a}
+.watch{margin:12px 0 4px;border:1px solid rgba(70,227,255,.25);border-radius:14px;padding:12px 14px;background:rgba(10,20,40,.55)}
+.watchhead{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.watchhead small{display:block;opacity:.7;font-size:12px;margin-top:2px}
+.watchtot{display:flex;gap:16px}.watchtot span{font-size:12px;opacity:.85}.watchtot em{display:block;font-style:normal;font-size:22px;font-weight:700;color:#46e3ff;font-family:"JetBrains Mono",monospace}
+.wlink{font-size:13px;color:#ffc95a;text-decoration:underline}
+.wlist{margin-top:10px;display:grid;gap:6px}
+.wrow{display:grid;grid-template-columns:1fr auto auto auto;gap:12px;align-items:center;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13px}
+.wrow a{color:inherit;text-decoration:none}.wrow a:hover{text-decoration:underline}
+.wrow .n{font-family:"JetBrains Mono",monospace;min-width:64px;text-align:right}
+.wrow.bump{animation:wbump 2.4s ease}
+@keyframes wbump{0%{background:rgba(255,201,90,.45)}100%{background:rgba(255,255,255,.04)}}
+@media (max-width:560px){.wrow{grid-template-columns:1fr auto auto}.wrow .s{display:none}}
 </style>
 <style>body{margin:0}img{max-width:100%}</style>
 </head>
@@ -300,6 +312,12 @@ td.n.c{color:var(--amber)}
       </div>
     </div>
     <div class="etsybar" id="etsyBar"><span class="etsydot" id="etsyDot"></span><span id="etsyText">Etsy: checking...</span><button id="btnEtsy" hidden>Connect Etsy shop</button><button id="btnEtsySync" hidden>Count sales now</button></div>
+    <div class="watch" id="watch" hidden>
+      <div class="watchhead"><div><b>Who's looking</b><small id="watchNote">Views and favorites from Etsy, refreshed every 15 minutes.</small></div>
+        <div class="watchtot"><span><em id="wViews">0</em>views</span><span><em id="wFavs">0</em>favorites</span><span><em id="wSold">0</em>sold</span></div>
+        <a class="wlink" href="https://www.etsy.com/your/shops/me/stats" target="_blank" rel="noopener">Open Etsy Stats</a></div>
+      <div class="wlist" id="wList"></div>
+    </div>
     <div class="autobar" id="autoBar" hidden>
       <div class="autohead"><b>Autopilot</b><span id="autoState" class="chip ok">On</span>
         <button id="btnAuto" hidden>Turn off</button>
@@ -1255,7 +1273,26 @@ async function listingPNG(spec){
 /* ---------- data: the website keeps everything in the Moneyland database; the Claude copy uses this browser ---------- */
 const SHOPKEY="moneyland-shop-v3";
 let MODE="local", SHOP={items:[],nextId:1}, IDEAS=[], LASTRUN=null, SETTINGS=null, AUTOLOG=[];
-function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source,etsyId:r.etsy_listing_id||null,etsyState:r.etsy_state||null,qa:r.qa_note||null,auto:!!r.auto_published}; }
+function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source,etsyId:r.etsy_listing_id||null,etsyState:r.etsy_state||null,qa:r.qa_note||null,auto:!!r.auto_published,views:r.etsy_views||0,favs:r.etsy_favs||0,statsAt:r.stats_at||null}; }
+const LASTSEEN={};
+function renderWatch(){
+  const live=SHOP.items.filter(i=>i.etsyId&&i.etsyState==="active");
+  $("watch").hidden=!(MODE==="db"&&live.length);
+  if(!live.length) return;
+  const tv=live.reduce((a,i)=>a+i.views,0), tf=live.reduce((a,i)=>a+i.favs,0), ts=live.reduce((a,i)=>a+i.sales,0);
+  $("wViews").textContent=tv; $("wFavs").textContent=tf; $("wSold").textContent=ts;
+  const at=live.map(i=>i.statsAt).filter(Boolean).sort().pop();
+  $("watchNote").textContent=at?"Updated from Etsy "+ago(at)+". Etsy updates view counts every few hours, so new views show up with a delay.":"Waiting for the first count from Etsy (every 15 minutes).";
+  const box=$("wList"); box.innerHTML="";
+  live.slice().sort((a,b)=>b.views-a.views||b.favs-a.favs).forEach(i=>{
+    const r=document.createElement("div"); r.className="wrow";
+    r.innerHTML='<a target="_blank" rel="noopener"></a><span class="n">'+i.views+' views</span><span class="n">'+i.favs+' favs</span><span class="n s">'+i.sales+' sold</span>';
+    const a=r.querySelector("a"); a.href="https://www.etsy.com/listing/"+i.etsyId; a.textContent=clean(i.spec.title);
+    const prev=LASTSEEN[i.id]; if(prev && (i.views>prev.v||i.favs>prev.f)){ r.classList.add("bump"); log("New views on Etsy: "+clean(i.spec.title),"core"); say(CORE,"Someone looked at "+clean(i.spec.title),3500); }
+    LASTSEEN[i.id]={v:i.views,f:i.favs,s:i.sales};
+    box.appendChild(r);
+  });
+}
 function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
   return {nextId:SEEDS.length+1, items:SEEDS.map((p,i)=>({id:i+1,status:"review",spec:p,price:p.listing.price,sales:0,source:"starter"}))}; }
 function saveLocal(){ if(MODE!=="local") return; try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
@@ -1308,6 +1345,7 @@ function renderShopBoard(){
   const live=SHOP.items.filter(i=>i.status==="listed"), rev=live.reduce((a,i)=>a+i.sales*i.price,0);
   $("sReview").textContent=SHOP.items.filter(i=>i.status==="review").length; $("sReady").textContent=SHOP.items.filter(i=>i.status==="approved").length;
   $("sLive").textContent=live.length; $("sMoney").textContent="$"+rev.toFixed(2);
+  renderWatch();
 }
 let openId=null, prevPage=0;
 async function showPage(){ const it=cur(); if(!it) return;
