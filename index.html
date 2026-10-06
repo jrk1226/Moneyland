@@ -121,6 +121,38 @@ td.n.c{color:var(--amber)}
 .dirs li{color:var(--ink);border-left:2px solid var(--magenta);padding-left:8px}
 .dirs li time{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin-right:6px}
 .log li.core span::before{content:"CORE  ";font-family:var(--mono);font-size:10.5px;color:var(--cyan);font-weight:600}
+.shop{padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.shophead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 20px}
+.shophead h2{font-family:var(--display);font-size:20px;letter-spacing:.1em;text-transform:uppercase;margin:0;color:var(--amber);text-shadow:0 0 14px rgba(255,201,90,.35)}
+.shophead p{margin:2px 0 0;color:var(--muted);font-size:13px}
+.shophead .vitals{margin-left:auto}
+.makebar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+.makebar .note{flex:1 1 240px}
+.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:900px){.board{grid-template-columns:minmax(0,1fr)}}
+.bcol{border:1px solid var(--line);background:rgba(4,10,22,.45);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.bcol h3{font-family:var(--display);font-size:12px;letter-spacing:.14em;text-transform:uppercase;margin:0 0 2px;color:var(--cyan)}
+.bcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.pcard{all:unset;cursor:pointer;display:flex;flex-direction:column;border:1px solid var(--line);background:var(--glass2);min-width:0}
+.pcard:hover,.pcard:focus-visible{border-color:var(--cyan);box-shadow:0 0 12px rgba(70,227,255,.25)}
+.pthumb{background:#fff;padding:4px}
+.pmeta{padding:7px 8px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.pmeta b{font-family:var(--body);font-size:12px;font-weight:600;line-height:1.3;color:var(--ink)}
+.pmeta small{font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.pmodal{position:fixed;inset:0;background:rgba(2,5,12,.78);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding:24px 16px;overflow:auto}
+.pmbox{background:#0b1426;border:1px solid var(--line2);max-width:1040px;width:100%;display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:18px;padding:18px;position:relative}
+@media (max-width:820px){.pmbox{grid-template-columns:minmax(0,1fr)}}
+.pmprev{background:#fff;padding:6px;align-self:start}
+.pmside{display:flex;flex-direction:column;gap:10px;min-width:0}
+.pmside h2{font-family:var(--display);font-size:20px;margin:0;letter-spacing:.03em;padding-right:80px}
+.pmstatus{font-family:var(--mono);font-size:11px;color:var(--amber);text-transform:uppercase;letter-spacing:.1em}
+.pmside label{font-family:var(--display);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+.pmside label button{padding:3px 9px;font-size:10.5px}
+.pmside textarea,.pmside input[type=number]{width:100%;font:inherit;font-size:12.5px;padding:8px 10px;border:1px solid var(--line2);background:rgba(4,10,22,.7);color:var(--ink);resize:vertical}
+.pmbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.pmclose{position:absolute;top:14px;right:14px}
+.salesn{font-family:var(--mono);font-size:18px;color:var(--amber);min-width:30px;text-align:center}
+.good{background:linear-gradient(90deg,#2ee6a6,#46e3ff)!important;color:#04101c!important;border-color:transparent!important}
 .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -202,12 +234,54 @@ td.n.c{color:var(--amber)}
     </aside>
   </div>
 
+  <section class="shop panel" id="shop">
+    <div class="shophead">
+      <div><h2>Real shop</h2><p>Real printable products to sell on Etsy. Nothing goes live until you approve it.</p></div>
+      <div class="vitals">
+        <div class="vital"><small>Needs your OK</small><b id="sReview">0</b></div>
+        <div class="vital"><small>Ready to list</small><b id="sReady">0</b></div>
+        <div class="vital"><small>Live on Etsy</small><b id="sLive">0</b></div>
+        <div class="vital coin"><small>Real sales</small><b id="sMoney">$0.00</b></div>
+      </div>
+    </div>
+    <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to see it full size, approve it, download the PDF and copy its Etsy listing.</p></div>
+    <div class="board">
+      <div class="bcol"><h3>1. Needs your OK</h3><div class="bcards" id="colReview"></div></div>
+      <div class="bcol"><h3>2. Ready to list on Etsy</h3><div class="bcards" id="colReady"></div></div>
+      <div class="bcol"><h3>3. Live on Etsy</h3><div class="bcards" id="colLive"></div></div>
+    </div>
+  </section>
+
+  <div class="pmodal" id="pmodal" hidden role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+    <div class="pmbox">
+      <div class="pmprev" id="pmPreview"></div>
+      <div class="pmside">
+        <button class="pmclose" id="pmClose">Close</button>
+        <span class="pmstatus" id="pmStatus"></span>
+        <h2 id="pmTitle"></h2>
+        <div class="pmbtns" id="pmReviewBtns"><button class="good" id="pmApprove">Approve</button><button id="pmReject">Reject</button><button id="pmDownload">Download PDF</button></div>
+        <div class="pmbtns" id="pmReadyBtns" hidden><button class="primary" id="pmDownload2">Download PDF</button><button class="good" id="pmListed">I listed it on Etsy</button></div>
+        <div class="pmbtns" id="pmLiveBtns" hidden><span class="note">Sales:</span><button id="pmSaleDown" aria-label="Remove a sale">-</button><span class="salesn" id="pmSales">0</span><button class="good" id="pmSaleUp">+ Add a sale</button><button id="pmBack">Take off Etsy</button></div>
+        <label for="pmEtsyTitle">Etsy title <button data-copy="pmEtsyTitle">Copy</button></label>
+        <textarea id="pmEtsyTitle" rows="2" readonly></textarea>
+        <label for="pmDesc">Etsy description <button data-copy="pmDesc">Copy</button></label>
+        <textarea id="pmDesc" rows="9" readonly></textarea>
+        <label for="pmTags">Etsy tags (13) <button data-copy="pmTags">Copy</button></label>
+        <textarea id="pmTags" rows="3" readonly></textarea>
+        <label for="pmPrice">Price (USD)</label>
+        <input type="number" id="pmPrice" min="1" step="0.25">
+        <p class="note" id="pmMsg"></p>
+      </div>
+    </div>
+  </div>
+
   <div class="foot">
-    <span>Credits are pretend. Nothing here spends or earns real money.</span>
+    <span>Credits in the district are pretend. Real money only comes from the Real shop below.</span>
     <button id="btnReset">Reset district</button>
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
 (() => {
 "use strict";
@@ -698,6 +772,226 @@ $("btnPlan").addEventListener("click", async ()=>{
   }catch(e){ $("aiNote").textContent=errCopy(e.code); if(OFF_CODES.includes(e.code)) aiOff(e.code); }
   finally{ btn.disabled=false; btn.textContent="Core: plan with AI"; }
 });
+
+/* ================= REAL SHOP: printable fire-safety products ================= */
+const PW=612, PH=792, M=42;
+const PC={red:"#C8102E", dark:"#1D2430", gray:"#5B6470", light:"#EEF1F5", line:"#C9D0DA", white:"#FFFFFF", yellow:"#F2C200", blue:"#1F4E9A", green:"#1B7F3B"};
+const DISCLAIMER="General guidance only. Always follow your local fire code, the authority having jurisdiction, and the equipment manufacturer's instructions.";
+const mctx=document.createElement("canvas").getContext("2d");
+function clean(t){ return String(t==null?"":t).replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x20-\x7E -ÿ]/g,""); }
+function tw(txt,size,bold){ mctx.font=(bold?"bold ":"")+size+"px Helvetica, Arial, sans-serif"; return mctx.measureText(txt).width; }
+function wrapT(txt,size,bold,maxW){ const words=clean(txt).split(/\s+/).filter(Boolean), out=[]; let cur="";
+  words.forEach(w=>{ const t=cur?cur+" "+w:w; if(tw(t,size,bold)>maxW && cur){ out.push(cur); cur=w; } else cur=t; }); if(cur) out.push(cur); return out.length?out:[""]; }
+
+function layout(spec){
+  const ops=[]; const R=(x,y,w,h,o)=>ops.push(Object.assign({t:"rect",x,y,w,h},o)); const T=(txt,x,y,s,o)=>ops.push(Object.assign({t:"text",txt:clean(txt),x,y,s},o));
+  const L=(x1,y1,x2,y2,c,w)=>ops.push({t:"line",x1,y1,x2,y2,c:c||PC.line,w:w||1}); const Cc=(x,y,r,o)=>ops.push(Object.assign({t:"circle",x,y,r},o));
+  const para=(txt,x,y,size,bold,maxW,color,lh)=>{ const ls=wrapT(txt,size,bold,maxW); ls.forEach((l,i)=>T(l,x,y+i*size*(lh||1.3),size,{b:bold,c:color})); return ls.length*size*(lh||1.3); };
+  const footer=()=>{ L(M,752,PW-M,752,PC.line,0.8); para(DISCLAIMER,M,765,7.5,false,PW-2*M,PC.gray,1.25); };
+  const tpl=spec.template;
+  if(tpl==="poster"){
+    R(0,0,PW,150,{f:PC.red});
+    let ts=34; let tl=wrapT(spec.title,ts,true,PW-2*M); while(tl.length>2 && ts>22){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M); }
+    if(tl.length===2 && tl[1].split(" ").length<3){ for(let w=PW-2*M-20; w>260; w-=20){ const t2=wrapT(spec.title,ts,true,w); if(t2.length>2) break; tl=t2; } }
+    tl.forEach((l,i)=>T(l,M,58+i*ts*1.08,ts,{b:true,c:PC.white}));
+    para(spec.subtitle||"",M,58+tl.length*ts*1.08+8,13,false,PW-2*M,PC.white);
+    const steps=(spec.steps||[]).slice(0,6); let sc=1.45, total;
+    const measure=k=>steps.reduce((a,s)=>a+Math.max(36*k, (15*k*1.3)+wrapT(s.text,11.5*k,false,PW-2*M-56).length*11.5*k*1.35)+18*k,0);
+    while((total=measure(sc))>500 && sc>0.7) sc-=0.03;
+    let y=182; const gap=Math.max(0,(570-total)/Math.max(1,steps.length));
+    steps.forEach((s,i)=>{ Cc(M+18,y+10,18,{f:PC.red}); T(String(i+1),M+18,y+16,17,{b:true,c:PC.white,a:"center"});
+      T(s.head,M+48,y+8,15*sc,{b:true,c:PC.dark}); const h=para(s.text,M+48,y+8+15*sc*1.3,11.5*sc,false,PW-2*M-56,PC.dark,1.35);
+      y+=Math.max(36*sc,15*sc*1.3+h)+18*sc+gap; });
+    if(spec.footer) { R(M,712,PW-2*M,30,{f:PC.light}); T(spec.footer,PW/2,731,11,{b:true,c:PC.dark,a:"center"}); }
+    footer();
+  } else if(tpl==="checklist"){
+    const top=()=>{ T(spec.title,M,70,24,{b:true,c:PC.dark}); para(spec.subtitle||"",M,92,10.5,false,PW-2*M,PC.gray); R(M,106,90,3,{f:PC.red});
+      T("Date: ______________    Shift: __________    Completed by: ______________________",M,130,10,{c:PC.dark}); };
+    const secs=(spec.sections||[]).slice(0,5); let k=1.5;
+    const meas=k=>secs.reduce((a,s)=>a+34*k+10+s.items.slice(0,9).reduce((b,it)=>b+wrapT(it,10.5*k,false,PW-2*M-26).length*10.5*k*1.3+6*k,0)+8,0);
+    while(meas(k)>540 && k>0.72) k-=0.03;
+    top(); let y=150;
+    const extra=Math.max(0,(560-meas(k))/Math.max(1,secs.length));
+    secs.forEach(s=>{ R(M,y,PW-2*M,20*k+2,{f:PC.dark}); T(s.head.toUpperCase(),M+8,y+14.5*k,10.5*k,{b:true,c:PC.white}); y+=22*k+12*k+4;
+      s.items.slice(0,9).forEach(it=>{ R(M+2,y-8.5*k,10*k,10*k,{s:PC.dark,lw:1.2}); const h=para(it,M+16+10*k,y,10.5*k,false,PW-2*M-26-10*k,PC.dark,1.3); y+=h+6*k; }); y+=6+extra; });
+    T("Manager sign-off: ______________________________     Time: __________",M,735,10,{c:PC.dark});
+    footer();
+  } else if(tpl==="log"){
+    T(spec.title,M,68,22,{b:true,c:PC.dark}); para(spec.subtitle||"",M,88,10,false,PW-2*M,PC.gray); R(M,100,90,3,{f:PC.red});
+    T("Location: ______________________    Unit / ID: ______________    Year: ________",M,124,10,{c:PC.dark});
+    let cols=(spec.columns||[]).map(clean).filter(Boolean).slice(0,8); if(!/date/i.test(cols[0]||"")) cols.unshift("Date"); if(!/initial/i.test(cols[cols.length-1]||"")) cols.push("Initials");
+    const tw0=PW-2*M, fixed={0:64}; fixed[cols.length-1]=58; const rest=(tw0-64-58)/Math.max(1,cols.length-2);
+    const widths=cols.map((c,i)=>fixed[i]||rest); let x=M, y=140; const hh=34;
+    R(M,y,tw0,hh,{f:PC.dark});
+    cols.forEach((c,i)=>{ const ls=wrapT(c,8,true,widths[i]-8).slice(0,3); ls.forEach((l,j)=>T(l,x+widths[i]/2,y+12+j*9.5-(ls.length-1)*4.5+4,8,{b:true,c:PC.white,a:"center"})); x+=widths[i]; });
+    y+=hh; const rows=Math.max(8,Math.min(14,spec.rows||12)), rh=Math.min(42,(590-hh-(spec.notes||[]).length*26)/rows);
+    for(let r=0;r<rows;r++){ if(r%2) R(M,y,tw0,rh,{f:PC.light}); L(M,y+rh,M+tw0,y+rh,PC.line,0.6); y+=rh; }
+    x=M; cols.forEach((c,i)=>{ L(x,140,x,y,PC.line,0.6); x+=widths[i]; }); L(M+tw0,140,M+tw0,y,PC.line,0.6); R(M,140,tw0,y-140,{s:PC.dark,lw:1});
+    y+=22; (spec.notes||[]).slice(0,5).forEach(n=>{ T("-",M,y,9,{c:PC.red,b:true}); y+=para(n,M+10,y,9,false,tw0-10,PC.dark,1.3)+4; });
+    footer();
+  } else { // sign
+    const acc=PC[spec.accent]||PC.red, onAcc=spec.accent==="yellow"?PC.dark:PC.white;
+    R(14,14,PW-28,PH-28,{s:acc,lw:10});
+    R(14,14,PW-28,300,{f:acc});
+    let ts=88; let tl=wrapT(spec.title,ts,true,PW-90); while((tl.length>3 || tl.some(l=>tw(l,ts,true)>PW-90)) && ts>30){ ts-=4; tl=wrapT(spec.title,ts,true,PW-90); }
+    const blockH=tl.length*ts*1.02; tl.forEach((l,i)=>T(l,PW/2,164-blockH/2+ts*0.8+i*ts*1.02,ts,{b:true,c:onAcc,a:"center"}));
+    const sub=wrapT(spec.subtitle||"",30,true,PW-110), lns=(spec.lines||[]).slice(0,4).map(ln=>wrapT(ln,20,false,PW-120));
+    const bh=sub.length*40+30+lns.reduce((a,l)=>a+l.length*28+16,0); let y=314+(420-bh)/2+30;
+    sub.forEach(l=>{ T(l,PW/2,y,30,{b:true,c:PC.dark,a:"center"}); y+=40; }); R(PW/2-40,y-14,80,4,{f:acc}); y+=30;
+    lns.forEach(ls=>{ ls.forEach(l=>{ T(l,PW/2,y,20,{c:PC.dark,a:"center"}); y+=28; }); y+=16; });
+    para(DISCLAIMER,M,748,7.5,false,PW-2*M,PC.gray,1.25);
+  }
+  return ops;
+}
+function toSVG(ops){
+  const esc2=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  let o='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+PW+' '+PH+'" style="background:#fff;display:block;width:100%;height:auto"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
+  ops.forEach(p=>{
+    if(p.t==="rect") o+='<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
+    if(p.t==="circle") o+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+p.r+'" fill="'+(p.f||"none")+'"/>';
+    if(p.t==="line") o+='<line x1="'+p.x1+'" y1="'+p.y1+'" x2="'+p.x2+'" y2="'+p.y2+'" stroke="'+p.c+'" stroke-width="'+p.w+'"/>';
+    if(p.t==="text") o+='<text x="'+p.x+'" y="'+p.y+'" font-family="Helvetica, Arial, sans-serif" font-size="'+p.s+'" font-weight="'+(p.b?"bold":"normal")+'" fill="'+(p.c||"#000")+'" text-anchor="'+(p.a==="center"?"middle":p.a==="right"?"end":"start")+'">'+esc2(p.txt)+'</text>';
+  });
+  return o+'</svg>';
+}
+function toPDF(ops){
+  const J=window.jspdf && window.jspdf.jsPDF; if(!J) throw new Error("PDF library did not load");
+  const d=new J({unit:"pt",format:"letter"});
+  ops.forEach(p=>{
+    if(p.t==="rect"){ const st=(p.f?"F":"")+(p.s?"D":""); if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); } if(st) d.rect(p.x,p.y,p.w,p.h,st); }
+    if(p.t==="circle"){ d.setFillColor(p.f); d.circle(p.x,p.y,p.r,"F"); }
+    if(p.t==="line"){ d.setDrawColor(p.c); d.setLineWidth(p.w); d.line(p.x1,p.y1,p.x2,p.y2); }
+    if(p.t==="text"){ d.setFont("helvetica",p.b?"bold":"normal"); d.setFontSize(p.s); d.setTextColor(p.c||"#000000"); d.text(p.txt,p.x,p.y,{align:p.a||"left"}); }
+  });
+  return d.output("blob");
+}
+
+/* ---------- shop state ---------- */
+const SHOPKEY="moneyland-shop";
+const TPL_NAMES={poster:"Wall poster",checklist:"Checklist",log:"Inspection log",sign:"Sign"};
+function seedProducts(){ return [
+ {template:"log", title:"Monthly Fire Extinguisher Inspection Log", subtitle:"Check each portable extinguisher once a month. Record the result and initial each line.",
+  columns:["Date","In place and visible","Not blocked","Pin and seal intact","Gauge in green","No damage or leaks","Tag current","Initials"], rows:12,
+  notes:["If any box fails, take the extinguisher out of service and call your fire protection company.","Monthly checks do not replace annual maintenance by a licensed technician.","Keep this log with your fire safety records."],
+  listing:{etsyTitle:"Monthly Fire Extinguisher Inspection Log, Printable PDF, Restaurant Office Shop Safety Checklist, Business Fire Safety Record",
+   tags:["fire extinguisher","inspection log","fire safety","printable log","restaurant safety","business checklist","safety record","monthly checklist","office safety","shop safety","landlord printable","property manager","pdf printable"], price:4.5}},
+ {template:"poster", title:"Kitchen Grease Fire: What To Do", subtitle:"Stay calm. Act fast. Get everyone out safely.",
+  steps:[{head:"Never use water",text:"Water on burning oil causes a violent flare-up that can spread the fire across the kitchen."},
+   {head:"Shut off the heat",text:"If it is safe to reach, turn off the burner, fryer or gas supply to the cooking line."},
+   {head:"Pull the hood system",text:"Activate the kitchen hood suppression system with the manual pull station."},
+   {head:"Use the K-class extinguisher",text:"After the hood system has discharged, use the K-class extinguisher on any remaining fire."},
+   {head:"Get out and call 911",text:"If the fire is not out right away, evacuate everyone and call 911 from outside."}],
+  footer:"Know where your pull station and K-class extinguisher are before you need them.",
+  listing:{etsyTitle:"Kitchen Grease Fire Safety Poster, Printable Restaurant Wall Sign, Commercial Kitchen Fire Steps, Staff Training Poster PDF",
+   tags:["kitchen safety","grease fire","fire safety poster","restaurant poster","kitchen sign","staff training","commercial kitchen","safety printable","food truck","chef gift","workplace safety","pdf poster","restaurant decor"], price:5}},
+ {template:"checklist", title:"Restaurant Closing Fire Safety Checklist", subtitle:"Complete at the end of every shift before the last person leaves.",
+  sections:[{head:"Cooking line",items:["All burners, ovens, fryers and griddles turned off","Fryer oil covered and cooling","Hood filters in place and not heavily greased","Grease drip trays emptied"]},
+   {head:"Fire protection",items:["Hood suppression nozzle caps in place","Manual pull station visible and not blocked","K-class extinguisher in its spot, pin and seal intact","ABC extinguishers in place and unobstructed"]},
+   {head:"Building",items:["Exit doors and paths clear","Trash and greasy rags removed from the kitchen","Electrical cords and outlets undamaged","Back door locked and alarm set"]}],
+  listing:{etsyTitle:"Restaurant Closing Fire Safety Checklist, Printable Kitchen Closing Duties PDF, Bar Cafe Food Truck End of Shift Checklist",
+   tags:["closing checklist","restaurant","fire safety","kitchen checklist","end of shift","bar checklist","cafe printable","food truck","staff duties","commercial kitchen","safety printable","manager tools","pdf checklist"], price:4}},
+ {template:"sign", title:"K-Class Extinguisher", subtitle:"For cooking oil and grease fires", accent:"red",
+  lines:["Activate the hood suppression system first.","Then use this extinguisher on any remaining fire.","Do not use water on a grease fire."],
+  listing:{etsyTitle:"K-Class Fire Extinguisher Sign, Printable Commercial Kitchen Safety Sign, Restaurant Grease Fire Label PDF",
+   tags:["k class","extinguisher sign","kitchen sign","fire safety sign","restaurant sign","grease fire","commercial kitchen","safety label","printable sign","food truck","chef","workplace safety","pdf sign"], price:3}},
+];}
+function listingDesc(spec){
+  const what={poster:"a printable wall poster",checklist:"a printable checklist",log:"a printable inspection log",sign:"a printable sign"}[spec.template]||"a printable";
+  return clean(spec.title)+"\n\nThis is "+what+" for restaurants, commercial kitchens, offices and property managers. "+clean(spec.subtitle||"")+"\n\nWHAT YOU GET\n- 1 PDF file, US Letter size (8.5 x 11 in)\n- Instant digital download. Nothing is shipped.\n- Print at home, at the office or at any print shop. Prints well in color or black and white.\n\n"+DISCLAIMER+"\n\nThis design was created with the help of AI tools and reviewed by a fire protection professional before listing.";
+}
+function loadShop(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
+  return {nextId:5, items:seedProducts().map((p,i)=>({id:i+1,status:"review",created:Date.now(),spec:p,price:p.listing.price,sales:0,starter:true}))}; }
+let SHOP=loadShop();
+function saveShop(){ try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
+const thumbCache={};
+function svgFor(it){ if(!thumbCache[it.id]) thumbCache[it.id]=toSVG(layout(it.spec)); return thumbCache[it.id]; }
+
+/* ---------- shop UI ---------- */
+function renderShopBoard(){
+  const cols={review:$("colReview"),approved:$("colReady"),listed:$("colLive")};
+  Object.values(cols).forEach(c=>c.innerHTML="");
+  SHOP.items.forEach(it=>{
+    const c=document.createElement("button"); c.className="pcard"; c.type="button";
+    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+TPL_NAMES[it.spec.template]+' &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
+    c.querySelector("b").textContent=clean(it.spec.title);
+    c.addEventListener("click",()=>openProduct(it.id));
+    (cols[it.status]||cols.review).appendChild(c);
+  });
+  Object.entries(cols).forEach(([k,c])=>{ if(!c.children.length) c.innerHTML='<p class="note">'+({review:"Nothing waiting. Ask the Core to make products.",approved:"Approve a product and it lands here, ready to list.",listed:"Products you have put on Etsy show here."})[k]+'</p>'; });
+  const live=SHOP.items.filter(i=>i.status==="listed"), rev=live.reduce((a,i)=>a+i.sales*i.price,0);
+  $("sReview").textContent=SHOP.items.filter(i=>i.status==="review").length; $("sReady").textContent=SHOP.items.filter(i=>i.status==="approved").length;
+  $("sLive").textContent=live.length; $("sMoney").textContent="$"+rev.toFixed(2);
+}
+let openId=null;
+function openProduct(id){
+  const it=SHOP.items.find(x=>x.id===id); if(!it) return; openId=id;
+  const L=it.spec.listing||{};
+  $("pmPreview").innerHTML=svgFor(it);
+  $("pmTitle").textContent=clean(it.spec.title);
+  $("pmStatus").textContent=({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
+  $("pmEtsyTitle").value=clean(L.etsyTitle||it.spec.title).slice(0,140);
+  $("pmDesc").value=listingDesc(it.spec);
+  $("pmTags").value=(L.tags||[]).map(t=>clean(t).slice(0,20)).slice(0,13).join(", ");
+  $("pmPrice").value=Number(it.price).toFixed(2);
+  $("pmReviewBtns").hidden=it.status!=="review"; $("pmReadyBtns").hidden=it.status!=="approved"; $("pmLiveBtns").hidden=it.status!=="listed";
+  $("pmSales").textContent=it.sales; $("pmMsg").textContent="";
+  $("pmodal").hidden=false; $("pmClose").focus();
+}
+function closeProduct(){ $("pmodal").hidden=true; openId=null; }
+function cur(){ return SHOP.items.find(x=>x.id===openId); }
+function setStatus(st,msg){ const it=cur(); it.status=st; saveShop(); renderShopBoard(); openProduct(it.id); $("pmMsg").textContent=msg||""; }
+async function copyText(el){ try{ await navigator.clipboard.writeText(el.value); $("pmMsg").textContent="Copied."; }catch(e){ el.focus(); el.select(); $("pmMsg").textContent="Selected. Press Ctrl+C to copy."; } }
+let dl=null;
+async function downloadPDF(){
+  const it=cur(); let blob;
+  try{ blob=toPDF(layout(it.spec)); }catch(e){ $("pmMsg").textContent="The PDF maker didn't load. Check your internet and reload the page."; return; }
+  const name=clean(it.spec.title).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")+".pdf";
+  if(dl){ try{ await dl.save({filename:name,data:blob}); $("pmMsg").textContent="Saved "+name; }catch(e){ $("pmMsg").textContent=e.code==="declined"?"Download cancelled.":"Couldn't save the file here."; } return; }
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000);
+  $("pmMsg").textContent="Downloaded "+name;
+}
+$("pmClose").addEventListener("click",closeProduct);
+$("pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") closeProduct(); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("pmodal").hidden) closeProduct(); });
+$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and copy the listing text into Etsy."); log("Josh approved "+clean(it.spec.title)+" for Etsy","core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
+let rejArm=0;
+$("pmReject").addEventListener("click",()=>{ if(Date.now()-rejArm>3000){ rejArm=Date.now(); $("pmReject").textContent="Click again to delete"; setTimeout(()=>$("pmReject").textContent="Reject",3000); return; }
+  const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); saveShop(); log("Josh rejected "+clean(it.spec.title),"core"); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; });
+$("pmDownload").addEventListener("click",downloadPDF); $("pmDownload2").addEventListener("click",downloadPDF);
+$("pmListed").addEventListener("click",()=>{ setStatus("listed","Marked as live on Etsy. Add sales here as they come in."); log(clean(cur().spec.title)+" is live on Etsy","core"); });
+$("pmBack").addEventListener("click",()=>setStatus("approved","Moved back to ready to list."));
+$("pmSaleUp").addEventListener("click",()=>{ const it=cur(); it.sales++; saveShop(); renderShopBoard(); $("pmSales").textContent=it.sales; log("Real sale: "+clean(it.spec.title)+" ($"+Number(it.price).toFixed(2)+")","core sale"); say(CORE,"Real sale recorded: $"+Number(it.price).toFixed(2),3500); });
+$("pmSaleDown").addEventListener("click",()=>{ const it=cur(); if(it.sales>0){ it.sales--; saveShop(); renderShopBoard(); $("pmSales").textContent=it.sales; } });
+$("pmPrice").addEventListener("change",()=>{ const it=cur(), v=parseFloat($("pmPrice").value); if(v>0){ it.price=Math.round(v*100)/100; saveShop(); renderShopBoard(); $("pmMsg").textContent="Price saved."; } });
+document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copyText($(b.dataset.copy))));
+
+/* ---------- the Core makes new products with AI ---------- */
+$("btnMake").addEventListener("click", async ()=>{
+  const btn=$("btnMake");
+  if(!sample){ $("makeNote").textContent="Making products needs AI. On the website, add your Claude API key in Vercel first."; return; }
+  btn.disabled=true; btn.textContent="The Core is working..."; $("makeNote").textContent="Writing 3 new products. This can take up to a minute.";
+  const have=SHOP.items.map(i=>clean(i.spec.title)).join("; ")||"none";
+  const prompt="You design printable fire-safety products sold as PDF digital downloads on Etsy to restaurant owners, commercial kitchens, offices, landlords and property managers in the United States. A fire protection professional will review every product before it is listed, but write it accurately: use widely accepted general fire-safety practice only, no code section numbers, no legal or certification claims, no brand names, plain words a busy restaurant worker understands. Avoid repeating these existing products: "+have+".\n\nCreate 3 NEW products, each a different template. Templates and their exact JSON shapes:\n"
+   +'poster: {"template":"poster","title":"max 45 chars","subtitle":"max 70 chars","steps":[{"head":"max 28 chars","text":"max 110 chars"}] (4-6 steps),"footer":"max 80 chars"}\n'
+   +'checklist: {"template":"checklist","title":"max 48 chars","subtitle":"max 90 chars","sections":[{"head":"max 24 chars","items":["max 70 chars"]}] (2-4 sections, 3-6 items each)}\n'
+   +'log: {"template":"log","title":"max 48 chars","subtitle":"max 100 chars","columns":["Date", "... 3-6 short check columns, max 22 chars each ...","Initials"],"rows":12,"notes":["max 110 chars"] (2-3 notes)}\n'
+   +'sign: {"template":"sign","title":"2-4 words","subtitle":"max 40 chars","accent":"red" or "yellow" or "blue" or "green","lines":["max 55 chars"] (1-3 lines)}\n'
+   +'Each product also needs "listing": {"etsyTitle":"keyword-rich Etsy title, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price": number between 3 and 8}.\n\nReply with only a JSON array of the 3 product objects. No emojis.';
+  try{
+    const arr=await sample.json(prompt,{cache:false});
+    const list=(Array.isArray(arr)?arr:(arr&&arr.products)||[]).filter(p=>p&&TPL_NAMES[p.template]&&p.title);
+    if(!list.length) throw {code:"invalid_json"};
+    list.slice(0,4).forEach(p=>{ p.listing=p.listing||{}; const price=Math.min(12,Math.max(2,Number(p.listing.price)||4));
+      SHOP.items.unshift({id:SHOP.nextId++,status:"review",created:Date.now(),spec:p,price,sales:0}); });
+    saveShop(); renderShopBoard();
+    $("makeNote").textContent=list.length+" new product"+(list.length>1?"s are":" is")+" waiting for your OK.";
+    log("Made "+list.length+" new real products for review","core"); say(CORE,list.length+" new products need your approval.",4000);
+    const d=V.find(v=>v.id==="mara"); if(d) say(d,"New printables ready for Josh to review.",3500);
+  }catch(e){ $("makeNote").textContent=errCopy(e.code); if(OFF_CODES.includes(e.code)) aiOff(e.code); }
+  finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
+});
+renderShopBoard();
+if(window.claude && window.claude.use){ window.claude.use("downloads").then(x=>{ dl=x; }).catch(()=>{}); }
 
 /* ---------- boot ---------- */
 placeAtHome(); resize();
