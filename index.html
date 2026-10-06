@@ -279,7 +279,7 @@ td.n.c{color:var(--amber)}
 
   <section class="shop panel" id="lab">
     <div class="shophead">
-      <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Lab</h2><p>Juno hunts for printables people are buying right now that we can deliver as instant downloads. Best ideas first. Tap Build it and Production makes the product.</p></div>
+      <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Room</h2><p>Juno hunts for printables people are buying right now that we can deliver as instant downloads. Best ideas first. Tap Build it and the Product Building room makes it.</p></div>
       <div class="vitals"><div class="vital"><small>New ideas</small><b id="sIdeas">0</b></div></div>
     </div>
     <div class="makebar"><button id="btnResearch" class="primary">Run research now</button><p class="note" id="labRun"></p></div>
@@ -290,7 +290,7 @@ td.n.c{color:var(--amber)}
 
   <section class="shop panel" id="shop">
     <div class="shophead">
-      <div><h2>Etsy Production</h2><p>Pax and the designers build real printables for your Etsy shop. Nothing goes live until you approve it.</p></div>
+      <div><h2>Product Building</h2><p>Pax and the designers build real printables for your Etsy shop. Nothing goes live until you approve it.</p></div>
       <div class="vitals">
         <div class="vital"><small>Needs your OK</small><b id="sReview">0</b></div>
         <div class="vital"><small>Ready to list</small><b id="sReady">0</b></div>
@@ -352,14 +352,14 @@ const W = 1320, H = 640, ROADY = 320, HR = 60;
 const DAY_START = 6*HR, DAY_END = 22*HR;
 
 const BUILD = {
-  studio: {name:"Fabrication Lab", code:"SEC-01", hue:"#46e3ff", x:70,  y:50,  w:220, h:160, door:"down"},
-  market: {name:"Holo Market",     code:"SEC-02", hue:"#ff4fd8", x:390, y:50,  w:220, h:160, door:"down"},
-  ledger: {name:"Ledger Core",     code:"SEC-03", hue:"#ffc95a", x:710, y:50,  w:220, h:160, door:"down"},
-  cafe:   {name:"Fuel Bar",        code:"SEC-04", hue:"#9b7bff", x:70,  y:430, w:220, h:160, door:"up"},
-  square: {name:"Sky Plaza",       code:"SEC-05", hue:"#46e3ff", x:390, y:420, w:220, h:180, door:"up", open:true},
-  homes:  {name:"Habitat Pods",    code:"SEC-06", hue:"#3cf2c0", x:710, y:430, w:220, h:160, door:"up"},
-  prod:   {name:"Etsy Production", code:"SEC-07", hue:"#ff8a3d", x:1030, y:50, w:250, h:160, door:"down"},
-  lab:    {name:"Research Lab",    code:"SEC-08", hue:"#a6ff5c", x:1030, y:430, w:250, h:160, door:"up"},
+  studio: {name:"Design Studio", code:"SEC-01", hue:"#46e3ff", x:70,  y:50,  w:220, h:160, door:"down"},
+  market: {name:"Etsy Publishing",     code:"SEC-02", hue:"#ff4fd8", x:390, y:50,  w:220, h:160, door:"down"},
+  ledger: {name:"Sales Counter",     code:"SEC-03", hue:"#ffc95a", x:710, y:50,  w:220, h:160, door:"down"},
+  cafe:   {name:"Break Room",        code:"SEC-04", hue:"#9b7bff", x:70,  y:430, w:220, h:160, door:"up"},
+  square: {name:"Meeting Plaza",       code:"SEC-05", hue:"#46e3ff", x:390, y:420, w:220, h:180, door:"up", open:true},
+  homes:  {name:"Rest Pods",    code:"SEC-06", hue:"#3cf2c0", x:710, y:430, w:220, h:160, door:"up"},
+  prod:   {name:"Product Building", code:"SEC-07", hue:"#ff8a3d", x:1030, y:50, w:250, h:160, door:"down"},
+  lab:    {name:"Research Room",    code:"SEC-08", hue:"#a6ff5c", x:1030, y:430, w:250, h:160, door:"up"},
 };
 
 const PEOPLE = [
@@ -380,9 +380,9 @@ const PEOPLE = [
   {id:"nell", name:"Nell", role:"Bookkeeper", code:"LDG-1", color:"#2ee6a6", skill:0.8, lane:-12,
    persona:"precise, dry sense of humor, cares about the numbers adding up",
    plan:[[0,8*HR,"homes","running diagnostics"],[8*HR,12*HR,"ledger","keeping the books","books"],[12*HR,13*HR,"cafe","refueling"],[13*HR,17*HR,"ledger","keeping the books","books"],[17*HR,19*HR,"market","auditing stock"],[19*HR,24*HR,"homes","powering down"]]},
-  {id:"otto", name:"Otto", role:"Fuel bar host", code:"SRV-3", color:"#b8e34a", skill:0.6, lane:12,
+  {id:"otto", name:"Otto", role:"Break room host", code:"SRV-3", color:"#b8e34a", skill:0.6, lane:12,
    persona:"calm, generous, hears all the district gossip",
-   plan:[[0,6*HR+30,"homes","recharging"],[6*HR+30,21*HR,"cafe","running the fuel bar","cafe"],[21*HR,24*HR,"homes","powering down"]]},
+   plan:[[0,6*HR+30,"homes","recharging"],[6*HR+30,21*HR,"cafe","running the break room","cafe"],[21*HR,24*HR,"homes","powering down"]]},
   {id:"juno", name:"Juno", role:"Researcher", code:"RSC-5", color:"#ffe14d", skill:0.75, lane:-24,
    persona:"curious, data-driven, studies Etsy trends and best sellers every day and loves a good product idea",
    plan:[[0,7*HR,"homes","recharging"],[7*HR,12*HR,"lab","scanning Etsy trends","research2"],[12*HR,13*HR,"cafe","refueling"],[13*HR,18*HR,"lab","ranking product ideas","research2"],[18*HR,20*HR,"square","listening to shoppers"],[20*HR,24*HR,"homes","powering down"]]},
@@ -433,7 +433,7 @@ function coreStep(prev, m){
     const tally={}; S.products.forEach(p=>{ const f=fmtOf(p.name); if(f&&p.sold) tally[f]=(tally[f]||0)+p.sold; });
     const best=Object.entries(tally).sort((a,b)=>b[1]-a[1])[0]; S.focus=best?best[0]:null;
     const waitingOK=(typeof SHOP!=="undefined")?SHOP.items.filter(i=>i.status==="review").length:0, newIdeas=(typeof IDEAS!=="undefined")?IDEAS.filter(i=>i.status==="new").length:0;
-    log("Morning briefing. Real money so far: $"+realMoney().toFixed(2)+". "+waitingOK+" products waiting for Josh's OK, "+newIdeas+" new ideas in the Research Lab.","core");
+    log("Morning briefing. Real money so far: $"+realMoney().toFixed(2)+". "+waitingOK+" products waiting for Josh's OK, "+newIdeas+" new ideas in the Research Room.","core");
     say(CORE,waitingOK+" products need Josh's OK. "+newIdeas+" new ideas.",4500);
   }
   const iris=V.find(v=>v.id==="iris"), bram=V.find(v=>v.id==="bram");
@@ -508,8 +508,8 @@ function stepSim(dm){
     }
     if(v.drift || v.place!==target) return;
     if(v.work==="design"){ v.progress+=dm*(0.45+v.skill*0.5); if(v.progress>=100){ v.progress=0; makeProduct(v); } }
-    if(v.work==="shop" && m-v.lastListed>(S.listFast?10:25)){ const p=S.products.find(p=>!p.listed); if(p){ p.listed=true; v.lastListed=m; say(v,"Restocked the Holo Market display."); } }
-    if(v.work==="promo"){ S.buzz=clamp(S.buzz+dm*0.0022*(0.6+v.skill)*(v.boostUntil>m?1.7:1),0,1); if(Math.random()<dm*0.01) say(v,pick(["New drops at the Holo Market!","Fresh holo prints, live now!","Best little market on the grid!","Ask Iris about the new AR filters!"])); }
+    if(v.work==="shop" && m-v.lastListed>(S.listFast?10:25)){ const p=S.products.find(p=>!p.listed); if(p){ p.listed=true; v.lastListed=m; say(v,"Restocked the Etsy Publishing display."); } }
+    if(v.work==="promo"){ S.buzz=clamp(S.buzz+dm*0.0022*(0.6+v.skill)*(v.boostUntil>m?1.7:1),0,1); if(Math.random()<dm*0.01) say(v,pick(["New drops at the Etsy Publishing!","Fresh holo prints, live now!","Best little market on the grid!","Ask Iris about the new AR filters!"])); }
     if(v.work==="research" && Math.random()<dm*0.004){ const best=bestSeller(); if(best) say(v,"Buyers keep picking "+best.name+". Logged."); }
     if(v.work==="books" && Math.floor(prev/120)!==Math.floor(m/120)) say(v,"Ledger: $"+realMoney().toFixed(2)+" in real Etsy sales.");
     if(v.work==="research2" && Math.random()<dm*0.006){ const fresh=(typeof IDEAS!=="undefined"?IDEAS:[]).filter(i=>i.status==="new"); say(v, fresh.length? "Idea for Josh: "+fresh[Math.floor(Math.random()*fresh.length)].title : pick(["Checking Etsy best sellers...","Holiday printables are heating up.","Bundles are outselling single pages.","Tracking what buyers search for."]),4200); }
@@ -846,7 +846,7 @@ $("talkForm").addEventListener("submit", async ev=>{
 $("btnPlan").addEventListener("click", async ()=>{
   if(!sample) return; const btn=$("btnPlan"); btn.disabled=true; btn.textContent="Thinking...";
   $("aiNote").textContent="The district AI is studying the market. This can take up to a minute.";
-  const prompt="It is the year 2085. You plan for Moneyland, a small autonomous maker district. Its AI residents design digital products and sell them in the Holo Market for pretend credits. Designers: Mara (chromatic, bioluminescent, soft-glow, liquid-metal styles) and Theo (synthwave, brutalist, glitch, monochrome styles). Iris runs the market, Bram broadcasts promos in the Sky Plaza, Nell keeps the ledger, Otto runs the fuel bar. The Core is the central AI brain that supervises them all and sets daily targets (today's target: "+(S.target||"not set")+" credits, time on task "+compliance()+"%).\n\nCurrent state:\n"+stateSummary()+"\n\nStudy what sells and plan the next products. Reply with only JSON in this shape:\n{\"headline\": \"one sentence from the Core on how the district is doing\", \"ideas\": [{\"name\": \"product name of 3-7 words that ends with one of: "+FORMAT_NAMES.join(", ")+"\", \"maker\": \"Mara\" or \"Theo\", \"why\": \"short reason\"}], \"lines\": [{\"who\": \"resident name\", \"says\": \"what they say, under 90 characters\"}]}\nGive exactly 4 ideas, 2 for each designer, and one line for each of the 6 residents. No emojis.";
+  const prompt="It is the year 2085. You plan for Moneyland, a small autonomous maker district. Its AI residents design digital products and sell them in the Etsy Publishing for pretend credits. Designers: Mara (chromatic, bioluminescent, soft-glow, liquid-metal styles) and Theo (synthwave, brutalist, glitch, monochrome styles). Iris runs the market, Bram broadcasts promos in the Meeting Plaza, Nell keeps the ledger, Otto runs the break room. The Core is the central AI brain that supervises them all and sets daily targets (today's target: "+(S.target||"not set")+" credits, time on task "+compliance()+"%).\n\nCurrent state:\n"+stateSummary()+"\n\nStudy what sells and plan the next products. Reply with only JSON in this shape:\n{\"headline\": \"one sentence from the Core on how the district is doing\", \"ideas\": [{\"name\": \"product name of 3-7 words that ends with one of: "+FORMAT_NAMES.join(", ")+"\", \"maker\": \"Mara\" or \"Theo\", \"why\": \"short reason\"}], \"lines\": [{\"who\": \"resident name\", \"says\": \"what they say, under 90 characters\"}]}\nGive exactly 4 ideas, 2 for each designer, and one line for each of the 6 residents. No emojis.";
   try{
     const plan=await sample.json(prompt,{cache:false});
     if(plan&&plan.headline) log(String(plan.headline),"ai big");
@@ -996,7 +996,7 @@ const SEEDS=[
    tags:["baby shower games","baby shower","baby bingo","word scramble","baby predictions","advice cards","shower games","gender neutral","baby shower bingo","party games","shower printable","baby gift","pdf printable"],price:7}},
 ];
 
-/* ================= REAL SHOP: Etsy Production + Research Lab ================= */
+/* ================= REAL SHOP: Product Building + Research Room ================= */
 const PW=612, PH=792, M=40;
 const PC={dark:"#1F2533", gray:"#626B7A", light:"#F1F3F7", line:"#CDD3DD", white:"#FFFFFF", trace:"#C2C8D2"};
 const ACC={purple:"#7B4FD6", teal:"#0E9F9A", orange:"#F07F1C", pink:"#E0508F", blue:"#2F7DE1", green:"#2C9F55", yellow:"#F2B705", red:"#D83A3A", navy:"#23395B", sage:"#5F8C70"};
@@ -1274,8 +1274,8 @@ async function startData(){
     if(d.configured&&d.configured.db){ MODE="db"; if(r.ok){ SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; SETTINGS=d.settings; AUTOLOG=d.autolog||[];
         if(!SHOP.items.length){ try{ const sd=await api("/api/data",{action:"seed",items:SEEDS.slice().reverse()}); if(sd.products) SHOP.items=sd.products.map(norm); }catch(e){} } }
       else if(d.code==="needs_code") showCode(); }
-    else { SHOP=loadLocal(); $("labNote").textContent="The Research Lab runs once the Moneyland database key is added in Vercel."; }
-  }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Lab and daily research run on the Moneyland website. This copy keeps products in this browser."; }
+    else { SHOP=loadLocal(); $("labNote").textContent="The Research Room runs once the Moneyland database key is added in Vercel."; }
+  }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Room and daily research run on the Moneyland website. This copy keeps products in this browser."; }
   renderShopBoard(); renderLab(); etsyStatus(); renderAuto(); renderRooms();
   if(MODE==="db") setInterval(refresh,60000);
 }
@@ -1284,7 +1284,7 @@ async function updateItem(it,fields){
   if(MODE==="db"){ try{ await api("/api/data",{action:"product.update",id:it.id,fields}); }catch(e){ $("pmMsg").textContent="Couldn't save: "+(e.message||""); refresh(); } } else saveLocal();
 }
 
-/* ---------- Etsy Production board ---------- */
+/* ---------- Product Building board ---------- */
 const thumbCache={};
 function svgFor(it){ const k=it.id+":"+JSON.stringify(it.spec).length; if(!thumbCache[k]) thumbCache[k]=toSVG(layout(it.spec),0); return thumbCache[k]; }
 function pageCount(spec){ return pagesOf(layout(spec)).length; }
@@ -1298,7 +1298,7 @@ function renderShopBoard(){
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
   });
-  Object.entries(cols).forEach(([k,c])=>{ if(!c.children.length) c.innerHTML='<p class="note">'+({review:"Nothing waiting. Build an idea from the Research Lab or ask the Core.",approved:"Approve a product and it lands here, ready to list.",listed:"Products you have put on Etsy show here."})[k]+'</p>'; });
+  Object.entries(cols).forEach(([k,c])=>{ if(!c.children.length) c.innerHTML='<p class="note">'+({review:"Nothing waiting. Build an idea from the Research Room or ask the Core.",approved:"Approve a product and it lands here, ready to list.",listed:"Products you have put on Etsy show here."})[k]+'</p>'; });
   const live=SHOP.items.filter(i=>i.status==="listed"), rev=live.reduce((a,i)=>a+i.sales*i.price,0);
   $("sReview").textContent=SHOP.items.filter(i=>i.status==="review").length; $("sReady").textContent=SHOP.items.filter(i=>i.status==="approved").length;
   $("sLive").textContent=live.length; $("sMoney").textContent="$"+rev.toFixed(2);
@@ -1364,7 +1364,7 @@ $("pmSaleDown").addEventListener("click",()=>{ const it=cur(); if(it.sales>0){ u
 $("pmPrice").addEventListener("change",()=>{ const it=cur(), v=parseFloat($("pmPrice").value); if(v>0){ updateItem(it,{price:Math.round(v*100)/100}); $("pmMsg").textContent="Price saved."; } });
 document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copyText($(b.dataset.copy))));
 
-/* ---------- Research Lab ---------- */
+/* ---------- Research Room ---------- */
 function ago(ts){ const m=Math.round((Date.now()-new Date(ts).getTime())/60000); return m<60?m+" min ago":m<1440?Math.round(m/60)+" hours ago":Math.round(m/1440)+" days ago"; }
 function renderLab(){
   const box=$("ideaList"); box.innerHTML="";
@@ -1372,7 +1372,7 @@ function renderLab(){
   $("labSummary").textContent= LASTRUN&&LASTRUN.summary ? LASTRUN.summary : "";
   const list=IDEAS.filter(i=>i.status!=="passed").sort((a,b)=>(a.status==="new"?0:1)-(b.status==="new"?0:1)||(b.score||0)-(a.score||0)||b.id-a.id);
   $("sIdeas").textContent=list.filter(i=>i.status==="new").length;
-  if(!list.length){ box.innerHTML='<p class="note">'+(MODE==="db"?"No ideas yet.":"Ideas show up here once the Research Lab is running on the website.")+'</p>'; return; }
+  if(!list.length){ box.innerHTML='<p class="note">'+(MODE==="db"?"No ideas yet.":"Ideas show up here once the Research Room is running on the website.")+'</p>'; return; }
   list.forEach(i=>{
     const d=document.createElement("div"); d.className="idea";
     const src=(i.sources||[]).slice(0,4).map(s=>'<a href="'+encodeURI(s.url)+'" target="_blank" rel="noopener">'+esc(String(s.title||s.url).slice(0,60))+'</a>').join("");
@@ -1388,15 +1388,15 @@ function renderLab(){
 async function buildIdea(i,btn){
   btn.disabled=true; btn.textContent="Building..."; i.status="building"; $("labNote").textContent="Production is building \""+i.title+"\". This can take a minute or two.";
   const pax=V.find(v=>v.id==="pax"); if(pax) say(pax,"On it: "+i.title,4000);
-  try{ const d=await api("/api/produce",{ideaId:i.id}); $("labNote").textContent="Built \""+i.title+"\". It's waiting for your OK in Etsy Production."; log("Production built: "+i.title,"core"); say(CORE,"New product ready for review.",3500); }
+  try{ const d=await api("/api/produce",{ideaId:i.id}); $("labNote").textContent="Built \""+i.title+"\". It's waiting for your OK in Product Building."; log("Production built: "+i.title,"core"); say(CORE,"New product ready for review.",3500); }
   catch(e){ $("labNote").textContent=errCopy(e.code)+" "+(e.message||""); }
   refresh();
 }
 $("btnResearch").addEventListener("click",async()=>{
-  if(MODE!=="db"){ $("labNote").textContent="The Research Lab runs on the Moneyland website once the database key is added in Vercel."; return; }
+  if(MODE!=="db"){ $("labNote").textContent="The Research Room runs on the Moneyland website once the database key is added in Vercel."; return; }
   const b=$("btnResearch"); b.disabled=true; b.textContent="Researching..."; $("labNote").textContent="Searching Etsy trends and best sellers. This takes 1 to 3 minutes.";
   const j=V.find(v=>v.id==="juno"); if(j) say(j,"Scanning Etsy trends now.",4000);
-  try{ const d=await api("/api/research",{}); $("labNote").textContent=(d.ideas||[]).length+" new ideas found."; log("Research Lab found "+(d.ideas||[]).length+" new ideas","core"); }
+  try{ const d=await api("/api/research",{}); $("labNote").textContent=(d.ideas||[]).length+" new ideas found."; log("Research Room found "+(d.ideas||[]).length+" new ideas","core"); }
   catch(e){ $("labNote").textContent=(e.message||errCopy(e.code)); }
   finally{ b.disabled=false; b.textContent="Run research now"; refresh(); }
 });
@@ -1428,7 +1428,7 @@ const ROOMS=[
   {k:"market", real:"publish_on",  desc:"Publishes products to your Etsy shop"},
   {k:"ledger", real:"sales_on",    desc:"Counts real Etsy sales every 15 minutes"},
   {k:"studio", real:null, desc:"Designers' workshop (animation only)"},
-  {k:"cafe",   real:null, desc:"Break room (animation only)"},
+  {k:"cafe",   real:null, desc:"Where residents take breaks (animation only)"},
   {k:"square", real:null, desc:"Promotions and meetups (animation only)"},
   {k:"homes",  real:null, desc:"Where residents recharge (animation only)"},
 ];
