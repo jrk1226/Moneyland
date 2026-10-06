@@ -2,7 +2,12 @@
   "name": "moneyland",
   "private": true,
   "dependencies": {
+    "@resvg/resvg-js": "2.6.2",
+    "fontkit": "^2.0.4",
     "jspdf": "2.5.1",
-    "@resvg/resvg-js": "2.6.2"
+    "jszip": "^3.10.2",
+    "pdfkit": "^0.17.2",
+    "sharp": "^0.33.5",
+    "svg-to-pdfkit": "^0.1.8"
   }
 }

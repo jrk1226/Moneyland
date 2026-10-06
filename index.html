@@ -307,7 +307,7 @@ td.n.c{color:var(--amber)}
       <p class="note">Use the room switches under the map to turn parts of Autopilot on or off. Every hour Autopilot builds products from the best research ideas, has a second AI check each one for mistakes and Etsy rule problems, and publishes the ones that pass. Anything that fails stays in Needs your OK with the reason.</p>
       <ul class="autolog" id="autoLog"></ul>
     </div>
-    <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to page through it, approve it, then download the PDF and listing photo and copy its Etsy listing.</p></div>
+    <div class="makebar"><button id="btnMake" class="primary">Core: make a new product</button><p class="note" id="makeNote">Tap a product to page through it, approve it, then download the PDF and listing photo and copy its Etsy listing.</p></div>
     <div class="board">
       <div class="bcol"><h3>1. Needs your OK</h3><div class="bcards" id="colReview"></div></div>
       <div class="bcol"><h3>2. Ready to list on Etsy</h3><div class="bcards" id="colReady"></div></div>
@@ -1000,7 +1000,7 @@ const SEEDS=[
 const PW=612, PH=792, M=40;
 const PC={dark:"#1F2533", gray:"#626B7A", light:"#F1F3F7", line:"#CDD3DD", white:"#FFFFFF", trace:"#C2C8D2"};
 const ACC={purple:"#7B4FD6", teal:"#0E9F9A", orange:"#F07F1C", pink:"#E0508F", blue:"#2F7DE1", green:"#2C9F55", yellow:"#F2B705", red:"#D83A3A", navy:"#23395B", sage:"#5F8C70"};
-const CATS={kids:"Kids", planner:"Planners & trackers", party:"Party & events"};
+const CATS={kids:"Kids", planner:"Planners & trackers", party:"Party & events", wallart:"Wall art"};
 const TPL_NAMES={chart:"Chart",reward:"Reward chart",math:"Math worksheet",tracing:"Tracing worksheet",table:"Tracker",planner:"Planner page",sign:"Sign",letter:"Letter",certificate:"Certificate",bingo:"Bingo",scramble:"Word scramble",labels:"Labels",bundle:"Bundle"};
 const FOOT="For personal and classroom use. Print at home on US Letter paper.";
 const mctx=(typeof document!=="undefined")?document.createElement("canvas").getContext("2d"):null;
@@ -1286,14 +1286,19 @@ async function updateItem(it,fields){
 
 /* ---------- Product Building board ---------- */
 const thumbCache={};
-function svgFor(it){ const k=it.id+":"+JSON.stringify(it.spec).length; if(!thumbCache[k]) thumbCache[k]=toSVG(layout(it.spec),0); return thumbCache[k]; }
-function pageCount(spec){ return pagesOf(layout(spec)).length; }
+const SRV=()=>MODE==="db";
+function prevURL(it,kind,i,w){ return "/api/preview?id="+it.id+"&kind="+kind+"&i="+(i||0)+"&w="+(w||600)+"&v="+encodeURIComponent(String(JSON.stringify(it.spec).length))+"&code="+encodeURIComponent(accessCode||""); }
+function svgFor(it){ if(SRV()) return '<img loading="lazy" alt="" src="'+prevURL(it,"page",0,320)+'" style="width:100%;height:100%;object-fit:contain;background:#fff">';
+  const k=it.id+":"+JSON.stringify(it.spec).length; if(!thumbCache[k]) thumbCache[k]=toSVG(layout(it.spec),0); return thumbCache[k]; }
+function pageCount(spec){ if(spec.category==="wallart") return (spec.prints||[]).length; if(spec.pageCount) return spec.pageCount; try{ return pagesOf(layout(spec)).length; }catch(e){ return 0; } }
+const INFO={};
+async function infoFor(it){ const k=it.id+":"+JSON.stringify(it.spec).length; if(!INFO[k]){ const r=await fetch(prevURL(it,"info")); INFO[k]=await r.json(); } return INFO[k]; }
 function renderShopBoard(){
   const cols={review:$("colReview"),approved:$("colReady"),listed:$("colLive")};
   Object.values(cols).forEach(c=>c.innerHTML="");
   SHOP.items.forEach(it=>{
     const c=document.createElement("button"); c.className="pcard"; c.type="button";
-    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+(it.etsyId?' &middot; '+(it.etsyState==="active"?"live on Etsy":"Etsy draft"):'')+(it.qa&&/^Held|failed/.test(it.qa)?' &middot; <span style="color:var(--magenta)">needs a look</span>':'')+'</small></div>';
+    const pc=pageCount(it.spec); c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+(pc?' &middot; '+pc+(it.spec.category==="wallart"?' prints':' pg'):'')+' &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+(it.etsyId?' &middot; '+(it.etsyState==="active"?"live on Etsy":"Etsy draft"):'')+(it.qa&&/^Held|failed/.test(it.qa)?' &middot; <span style="color:var(--magenta)">needs a look</span>':'')+'</small></div>';
     c.querySelector("b").textContent=clean(it.spec.title);
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
@@ -1304,14 +1309,22 @@ function renderShopBoard(){
   $("sLive").textContent=live.length; $("sMoney").textContent="$"+rev.toFixed(2);
 }
 let openId=null, prevPage=0;
-function showPage(){ const it=cur(); if(!it) return; const ops=layout(it.spec), n=pagesOf(ops).length; prevPage=Math.max(0,Math.min(n-1,prevPage));
+async function showPage(){ const it=cur(); if(!it) return;
+  if(SRV()){ let inf; try{ inf=await infoFor(it); }catch(e){ $("pmPreview").innerHTML='<p class="note">Preview unavailable.</p>'; return; } if(cur()!==it) return;
+    const np=(inf.pages||[]).length, n=np+(inf.photos||0); prevPage=Math.max(0,Math.min(n-1,prevPage)); const photo=prevPage>=np;
+    $("pmPreview").innerHTML='<img alt="" src="'+prevURL(it,photo?"photo":"page",photo?prevPage-np:prevPage,photo?1000:800)+'" style="width:100%;height:auto;display:block;background:#fff">';
+    $("pmPageNum").textContent=photo?"Etsy photo "+(prevPage-np+1)+" of "+inf.photos:((inf.wallart?"Print ":"Page ")+(prevPage+1)+" of "+np+(inf.pages[prevPage]?" - "+inf.pages[prevPage].label:""));
+    $("pmPrev").disabled=prevPage===0; $("pmNext").disabled=prevPage>=n-1; $("pmPager").hidden=n<2;
+    if(inf.description && !$("pmDesc").dataset.edited) $("pmDesc").value=inf.description; return; }
+  const ops=layout(it.spec), n=pagesOf(ops).length; prevPage=Math.max(0,Math.min(n-1,prevPage));
   $("pmPreview").innerHTML=toSVG(ops,prevPage); $("pmPageNum").textContent="Page "+(prevPage+1)+" of "+n; $("pmPrev").disabled=prevPage===0; $("pmNext").disabled=prevPage>=n-1; $("pmPager").hidden=n<2; }
 function openProduct(id){
   const it=SHOP.items.find(x=>x.id===id); if(!it) return; openId=id; prevPage=0;
   const L=it.spec.listing||{};
   showPage();
   $("pmTitle").textContent=clean(it.spec.title);
-  $("pmStatus").textContent=(CATS[it.spec.category]||"")+" | "+TPL_NAMES[it.spec.template]+" | "+({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
+  $("pmDesc").dataset.edited="";
+  $("pmStatus").textContent=(CATS[it.spec.category]||"")+" | "+(it.spec.category==="wallart"?"Art prints":(TPL_NAMES[it.spec.template]||"Bundle"))+" | "+({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
   $("pmEtsyTitle").value=clean(L.etsyTitle||it.spec.title).slice(0,140);
   $("pmDesc").value=listingDesc(it.spec);
   $("pmTags").value=(L.tags||[]).map(t=>clean(t).slice(0,20)).slice(0,13).join(", ");
@@ -1340,8 +1353,9 @@ async function saveFile(name,blob){
   $("pmMsg").textContent="Downloaded "+name;
 }
 const fileBase=it=>clean(it.spec.title).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"");
-async function downloadPDF(){ const it=cur(); let blob; try{ blob=toPDF(layout(it.spec)); }catch(e){ $("pmMsg").textContent="The PDF maker didn't load. Check your internet and reload the page."; return; } saveFile(fileBase(it)+".pdf",blob); }
-async function downloadPhoto(){ const it=cur(); $("pmMsg").textContent="Making the listing photo..."; try{ const b=await listingPNG(it.spec); saveFile(fileBase(it)+"-listing-photo.png",b); }catch(e){ $("pmMsg").textContent="Couldn't make the photo in this browser."; } }
+async function srvFile(url,name){ $("pmMsg").textContent="Preparing the file..."; try{ const r=await fetch(url); if(!r.ok) throw 0; const cd=r.headers.get("content-disposition")||""; const m=cd.match(/filename="([^"]+)"/); saveFile(m?m[1]:name,await r.blob()); }catch(e){ $("pmMsg").textContent="Couldn't make the file. Try again."; } }
+async function downloadPDF(){ const it=cur(); if(SRV()){ const n=it.spec.category==="wallart"?5:1; for(let i=0;i<n;i++) await srvFile(prevURL(it,"file",i),fileBase(it)+(n>1?"-"+(i+1)+".zip":".pdf")); return; } let blob; try{ blob=toPDF(layout(it.spec)); }catch(e){ $("pmMsg").textContent="The PDF maker didn't load. Check your internet and reload the page."; return; } saveFile(fileBase(it)+".pdf",blob); }
+async function downloadPhoto(){ const it=cur(); if(SRV()){ srvFile(prevURL(it,"photo",0,2400),fileBase(it)+"-listing-photo.png"); return; } $("pmMsg").textContent="Making the listing photo..."; try{ const b=await listingPNG(it.spec); saveFile(fileBase(it)+"-listing-photo.png",b); }catch(e){ $("pmMsg").textContent="Couldn't make the photo in this browser."; } }
 $("pmClose").addEventListener("click",closeProduct);
 $("pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") closeProduct(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("pmodal").hidden) closeProduct(); });
@@ -1406,7 +1420,7 @@ $("btnMake").addEventListener("click", async ()=>{
   const btn=$("btnMake"); btn.disabled=true; btn.textContent="The Core is working...";
   $("makeNote").textContent="Designing 3 new products. This can take a minute or two.";
   try{
-    if(MODE==="db"){ const d=await api("/api/produce",{count:3}); $("makeNote").textContent=(d.products||[]).length+" new products are waiting for your OK."; await refresh(); }
+    if(MODE==="db"){ $("makeNote").textContent="Designing a new product, with illustrations and a quality check. This can take 2 to 4 minutes."; const d=await api("/api/produce",{count:1}); $("makeNote").textContent=(d.products||[]).length+" new product is waiting for your OK."; await refresh(); }
     else {
       if(!sample) throw {code:"not_configured"};
       const have=SHOP.items.map(i=>clean(i.spec.title)).join("; ");
@@ -1416,7 +1430,7 @@ $("btnMake").addEventListener("click", async ()=>{
     }
     log("The Core made new products for review","core"); say(CORE,"New products need your approval.",4000);
   }catch(e){ $("makeNote").textContent=e.code==="not_configured"?"Making products needs the AI key and database set up on the website.":(e.message||errCopy(e.code)); }
-  finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
+  finally{ btn.disabled=false; btn.textContent="Core: make a new product"; }
 });
 
 
@@ -1476,11 +1490,11 @@ $("btnEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=c
 $("btnEtsySync").addEventListener("click",async()=>{ const b=$("btnEtsySync"); b.disabled=true; b.textContent="Counting...";
   try{ const d=await api("/api/etsy",{action:"sync"}); await refresh(); await etsyStatus(); $("makeNote").textContent="Sales counted from Etsy."; }catch(e){ $("makeNote").textContent=e.message||"Couldn't reach Etsy."; }
   finally{ b.disabled=false; b.textContent="Count sales now"; } });
+$("pmDesc").addEventListener("input",()=>{ $("pmDesc").dataset.edited="1"; });
 $("pmEtsySend").addEventListener("click",async()=>{
-  const it=cur(), b=$("pmEtsySend"); b.disabled=true; b.textContent="Sending to Etsy..."; $("pmMsg").textContent="Making the PDF and photo and uploading them. This can take a minute.";
+  const it=cur(), b=$("pmEtsySend"); b.disabled=true; b.textContent="Sending to Etsy..."; $("pmMsg").textContent="Making the files and photos and uploading them. This can take a minute or two.";
   try{
-    const pdf=await blobB64(toPDF(layout(it.spec))), img=await blobB64(await listingPNG(it.spec));
-    const d=await api("/api/etsy",{action:"draft",productId:it.id,title:$("pmEtsyTitle").value,description:$("pmDesc").value,pdf,image:img,fileName:fileBase(it)+".pdf"});
+    const d=await api("/api/etsy",{action:"draft",productId:it.id,title:$("pmEtsyTitle").value,description:$("pmDesc").value,reupload:!!it.etsyId});
     it.etsyId=d.listing_id; it.etsyState=it.etsyState||"draft"; renderShopBoard();
     $("pmMsg").innerHTML='Sent. It is saved on Etsy as a draft. <a href="'+d.edit_url+'" target="_blank" rel="noopener">Open it on Etsy</a>, check it, and click Publish. Moneyland moves it to Live on its own.';
     log("Sent to Etsy as a draft: "+clean(it.spec.title),"core"); say(CORE,"Uploaded to Etsy: "+clean(it.spec.title),4000);
@@ -1522,6 +1536,7 @@ if(window.claude && window.claude.use){ window.claude.use("sample").then(s=>{ if
 startData(); renderRooms();
 })();
 </script>
+
 
 </body>
 </html>
