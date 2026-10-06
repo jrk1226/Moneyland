@@ -153,6 +153,10 @@ td.n.c{color:var(--amber)}
 .pmclose{position:absolute;top:14px;right:14px}
 .salesn{font-family:var(--mono);font-size:18px;color:var(--amber);min-width:30px;text-align:center}
 .good{background:linear-gradient(90deg,#2ee6a6,#46e3ff)!important;color:#04101c!important;border-color:transparent!important}
+.etsybar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;border:1px solid var(--line);background:rgba(4,10,22,.45);font-size:13px}
+.etsydot{width:10px;height:10px;border-radius:50%;background:var(--magenta);box-shadow:0 0 8px var(--magenta)}
+.etsydot.on{background:#a6ff5c;box-shadow:0 0 8px #a6ff5c}
+.pmside a{color:var(--cyan)}
 .pager{justify-content:center;margin-top:8px}
 .labsum{margin:0;padding:10px 12px;border-left:3px solid #a6ff5c;background:rgba(166,255,92,.06);font-size:13.5px}
 .labsum:empty{display:none}
@@ -272,6 +276,7 @@ td.n.c{color:var(--amber)}
         <div class="vital coin"><small>Real sales</small><b id="sMoney">$0.00</b></div>
       </div>
     </div>
+    <div class="etsybar" id="etsyBar"><span class="etsydot" id="etsyDot"></span><span id="etsyText">Etsy: checking...</span><button id="btnEtsy" hidden>Connect Etsy shop</button><button id="btnEtsySync" hidden>Count sales now</button></div>
     <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to page through it, approve it, then download the PDF and listing photo and copy its Etsy listing.</p></div>
     <div class="board">
       <div class="bcol"><h3>1. Needs your OK</h3><div class="bcards" id="colReview"></div></div>
@@ -288,7 +293,7 @@ td.n.c{color:var(--amber)}
         <span class="pmstatus" id="pmStatus"></span>
         <h2 id="pmTitle"></h2>
         <div class="pmbtns" id="pmReviewBtns"><button class="good" id="pmApprove">Approve</button><button id="pmReject">Reject</button><button id="pmDownload">Download PDF</button><button id="pmPhoto">Listing photo</button></div>
-        <div class="pmbtns" id="pmReadyBtns" hidden><button class="primary" id="pmDownload2">Download PDF</button><button id="pmPhoto2">Listing photo</button><button class="good" id="pmListed">I listed it on Etsy</button></div>
+        <div class="pmbtns" id="pmReadyBtns" hidden><button class="good" id="pmEtsySend" hidden>Send to Etsy</button><button class="primary" id="pmDownload2">Download PDF</button><button id="pmPhoto2">Listing photo</button><button class="good" id="pmListed">I listed it on Etsy</button></div>
         <div class="pmbtns" id="pmLiveBtns" hidden><span class="note">Sales:</span><button id="pmSaleDown" aria-label="Remove a sale">-</button><span class="salesn" id="pmSales">0</span><button class="good" id="pmSaleUp">+ Add a sale</button><button id="pmBack">Take off Etsy</button></div>
         <label for="pmEtsyTitle">Etsy title <button data-copy="pmEtsyTitle">Copy</button></label>
         <textarea id="pmEtsyTitle" rows="2" readonly></textarea>
@@ -1214,7 +1219,7 @@ async function listingPNG(spec){
 /* ---------- data: the website keeps everything in the Moneyland database; the Claude copy uses this browser ---------- */
 const SHOPKEY="moneyland-shop-v3";
 let MODE="local", SHOP={items:[],nextId:1}, IDEAS=[], LASTRUN=null;
-function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source}; }
+function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source,etsyId:r.etsy_listing_id||null,etsyState:r.etsy_state||null}; }
 function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
   return {nextId:SEEDS.length+1, items:SEEDS.map((p,i)=>({id:i+1,status:"review",spec:p,price:p.listing.price,sales:0,source:"starter"}))}; }
 function saveLocal(){ if(MODE!=="local") return; try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
@@ -1236,7 +1241,7 @@ async function startData(){
       else if(d.code==="needs_code") showCode(); }
     else { SHOP=loadLocal(); $("labNote").textContent="The Research Lab runs once the Moneyland database key is added in Vercel."; }
   }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Lab and daily research run on the Moneyland website. This copy keeps products in this browser."; }
-  renderShopBoard(); renderLab();
+  renderShopBoard(); renderLab(); etsyStatus();
   if(MODE==="db") setInterval(refresh,60000);
 }
 async function updateItem(it,fields){
@@ -1253,7 +1258,7 @@ function renderShopBoard(){
   Object.values(cols).forEach(c=>c.innerHTML="");
   SHOP.items.forEach(it=>{
     const c=document.createElement("button"); c.className="pcard"; c.type="button";
-    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
+    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+(it.etsyId?' &middot; '+(it.etsyState==="active"?"live on Etsy":"Etsy draft"):'')+'</small></div>';
     c.querySelector("b").textContent=clean(it.spec.title);
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
@@ -1278,6 +1283,8 @@ function openProduct(id){
   $("pmPrice").value=Number(it.price).toFixed(2);
   $("pmReviewBtns").hidden=it.status!=="review"; $("pmReadyBtns").hidden=it.status!=="approved"; $("pmLiveBtns").hidden=it.status!=="listed";
   $("pmSales").textContent=it.sales; $("pmMsg").textContent="";
+  $("pmEtsySend").hidden=!(MODE==="db" && ETSY.connected); $("pmEtsySend").textContent=it.etsyId?"Update Etsy draft files":"Send to Etsy";
+  if(it.etsyId) $("pmMsg").innerHTML='On Etsy as a '+(it.etsyState==="active"?"live listing":"draft")+'. <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/'+it.etsyId+'" target="_blank" rel="noopener">Open it on Etsy</a>';
   $("pmodal").hidden=false; $("pmClose").focus();
 }
 function listingDesc(spec){
@@ -1370,6 +1377,33 @@ $("btnMake").addEventListener("click", async ()=>{
   }catch(e){ $("makeNote").textContent=e.code==="not_configured"?"Making products needs the AI key and database set up on the website.":(e.message||errCopy(e.code)); }
   finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
 });
+
+/* ---------- Etsy connection ---------- */
+let ETSY={configured:false,connected:false};
+function blobB64(b){ return new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.onerror=bad; r.readAsDataURL(b); }); }
+function renderEtsy(){
+  const t=$("etsyText"), dot=$("etsyDot");
+  $("btnEtsy").hidden=!(MODE==="db"&&ETSY.configured&&!ETSY.connected); $("btnEtsySync").hidden=!ETSY.connected;
+  dot.className="etsydot"+(ETSY.connected?" on":"");
+  t.textContent= MODE!=="db" ? "Etsy: connects on the Moneyland website." : !ETSY.configured ? "Etsy: not connected. Add the Etsy keys in Vercel to connect your shop." : !ETSY.connected ? "Etsy: keys added. Tap Connect Etsy shop and approve on Etsy." : "Etsy: connected to "+(ETSY.shop_name||"your shop")+". Sales are counted automatically every 15 minutes"+(ETSY.last_sync?" (last count "+ago(ETSY.last_sync)+")":"")+".";
+}
+async function etsyStatus(){ if(MODE!=="db"){ renderEtsy(); return; } try{ ETSY=await api("/api/etsy",{action:"status"}); }catch(e){} renderEtsy(); }
+$("btnEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=connect&code="+encodeURIComponent(accessCode||""); });
+$("btnEtsySync").addEventListener("click",async()=>{ const b=$("btnEtsySync"); b.disabled=true; b.textContent="Counting...";
+  try{ const d=await api("/api/etsy",{action:"sync"}); await refresh(); await etsyStatus(); $("makeNote").textContent="Sales counted from Etsy."; }catch(e){ $("makeNote").textContent=e.message||"Couldn't reach Etsy."; }
+  finally{ b.disabled=false; b.textContent="Count sales now"; } });
+$("pmEtsySend").addEventListener("click",async()=>{
+  const it=cur(), b=$("pmEtsySend"); b.disabled=true; b.textContent="Sending to Etsy..."; $("pmMsg").textContent="Making the PDF and photo and uploading them. This can take a minute.";
+  try{
+    const pdf=await blobB64(toPDF(layout(it.spec))), img=await blobB64(await listingPNG(it.spec));
+    const d=await api("/api/etsy",{action:"draft",productId:it.id,title:$("pmEtsyTitle").value,description:$("pmDesc").value,pdf,image:img,fileName:fileBase(it)+".pdf"});
+    it.etsyId=d.listing_id; it.etsyState=it.etsyState||"draft"; renderShopBoard();
+    $("pmMsg").innerHTML='Sent. It is saved on Etsy as a draft. <a href="'+d.edit_url+'" target="_blank" rel="noopener">Open it on Etsy</a>, check it, and click Publish. Moneyland moves it to Live on its own.';
+    log("Sent to Etsy as a draft: "+clean(it.spec.title),"core"); say(CORE,"Uploaded to Etsy: "+clean(it.spec.title),4000);
+  }catch(e){ $("pmMsg").textContent="Etsy upload failed: "+(e.message||""); }
+  finally{ b.disabled=false; b.textContent=it.etsyId?"Update Etsy draft files":"Send to Etsy"; }
+});
+(function(){ const m=new URLSearchParams(location.search).get("etsy"); if(m){ setTimeout(()=>{ $("makeNote").textContent= m==="connected"?"Your Etsy shop is connected.":m; },300); history.replaceState(null,"",location.pathname+"#shop"); } })();
 if(window.claude && window.claude.use){ window.claude.use("downloads").then(x=>{ dl=x; }).catch(()=>{}); }
 
 /* ---------- boot ---------- */
