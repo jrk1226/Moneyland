@@ -240,6 +240,11 @@ td.n.c{color:var(--amber)}
 .hitem .hlight{margin-top:4px}.hitem b{font-family:var(--display);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;display:block}
 .hitem .htxt{font-size:12.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
 .hitem.bad{border-color:rgba(255,92,108,.55)}.hitem.warn{border-color:rgba(255,201,90,.45)}
+.reachhead{font-size:14px;line-height:1.45;margin:0 0 10px}
+.reachlist{display:grid;gap:6px}.reachlist div{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;border:1px solid var(--line);background:rgba(4,10,22,.45);padding:8px 10px;font-size:13px}
+.reachlist .tag{font:600 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border:1px solid var(--line2);align-self:start;white-space:nowrap}
+.reachlist .tag.owner{color:#ffc95a;border-color:rgba(255,201,90,.6)}.reachlist .tag.moneyland{color:#4ee38a;border-color:rgba(78,227,138,.5)}
+.reachlist small{grid-column:2;color:var(--muted)}
 .studiogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
 .studioc{border:1px solid var(--line);background:rgba(4,10,22,.45);padding:8px;font-size:12.5px;min-width:0}
 .studioc .imgs{display:flex;gap:4px;margin-bottom:6px}.studioc img{width:50%;aspect-ratio:4/3;object-fit:cover;background:#0b1428}
@@ -389,6 +394,9 @@ td.n.c{color:var(--amber)}
       <div class="makebar"><button id="btnMkRun" class="primary">Run marketing now</button><p class="note" id="mkNote">Runs on its own nonstop, every 10 minutes.</p></div>
       <h3 class="mkh">Brand kit</h3>
       <div class="brandgrid" id="brandGrid"></div>
+      <h3 class="mkh">Why we are not reaching people</h3>
+      <div class="makebar"><button id="btnReach">Check now</button><p class="note" id="reachNote">Once a day the marketing team checks views, where each listing ranks in Etsy search, and what the shop is missing. Claude and ChatGPT each write a diagnosis and the better one is shown here.</p></div>
+      <div id="reachBox"></div>
       <h3 class="mkh">Photo Studio</h3>
       <div class="makebar"><button id="btnStudioRun">Make photos and video now</button><p class="note" id="stNote">Every 15 minutes the studio gives one live listing a 12-second video and, once the picture AI key is added, two realistic lifestyle photos made around the real pages.</p></div>
       <div class="studiogrid" id="studioGrid"></div>
@@ -1632,6 +1640,7 @@ function renderMarketing(){
   if(!$("brandGrid").querySelector(".bitem")){ $("brandGrid").innerHTML=""; BRAND.forEach(([k,label,wide])=>{ const d=document.createElement("div"); d.className="bitem"+(wide?" wide":"");
     d.innerHTML='<img loading="lazy" alt=""><small></small><a target="_blank" rel="noopener">Download full size</a>'; d.querySelector("img").src=mkURL("kind=asset&name="+k+"&w="+(wide?800:400)); d.querySelector("small").textContent=label; d.querySelector("a").href=mkURL("kind=asset&name="+k+"&download=1"); $("brandGrid").appendChild(d); }); }
   if(!MK) return;
+  renderReach(MK.reach);
   const pins=MK.pins||[]; $("mPinsReady").textContent=pins.filter(p=>p.status==="ready").length; $("mPinsPosted").textContent=pins.filter(p=>p.status==="posted").length;
   const pi=MK.pinterest||{}; $("pinDot").className="etsydot"+(pi.connected?" on":"");
   $("pinText").textContent=!pi.configured?"Pinterest: waiting for the Pinterest app keys. Pins are made and saved here until then.":!pi.connected?"Pinterest: keys added. Tap Connect Pinterest and approve.":"Pinterest: connected"+(pi.username?" as "+pi.username:"")+". Posting up to 5 pins a day.";
@@ -1656,6 +1665,17 @@ $("btnPin").addEventListener("click",()=>{ window.location.href=mkURL("do=pconne
 $("btnReEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=connect&code="+encodeURIComponent(accessCode||""); });
 (function(){ const m=new URLSearchParams(location.search).get("pinterest"); if(m){ setTimeout(()=>{ $("mkNote").textContent= m==="connected"?"Pinterest is connected.":m; },300); history.replaceState(null,"",location.pathname+"#marketing"); } })();
 setInterval(()=>{ if(!$("mkBody").hidden) loadMarketing(); },300000);
+/* ---------- Reach report ---------- */
+function renderReach(r){ const box=$("reachBox"); box.innerHTML="";
+  if(!r){ box.innerHTML='<p class="note">No report yet. The first one is made within the hour, or tap Check now.</p>'; return; }
+  const h=document.createElement("p"); h.className="reachhead"; h.textContent=r.headline+" (checked "+ago(r.at)+")"; box.appendChild(h);
+  const l=document.createElement("div"); l.className="reachlist";
+  (r.causes||[]).forEach(c=>{ const d=document.createElement("div"); d.innerHTML='<span class="tag"></span><b></b><small></small>';
+    const t=d.querySelector(".tag"); t.classList.add(c.who); t.textContent=c.who==="owner"?"You":"Moneyland"; d.querySelector("b").textContent=c.cause+" - "+c.fix; d.querySelector("small").textContent=c.evidence; l.appendChild(d); });
+  box.appendChild(l);
+  if(r.expect){ const e=document.createElement("p"); e.className="note"; e.textContent="What to expect: "+r.expect; box.appendChild(e); } }
+$("btnReach").addEventListener("click",async()=>{ const b=$("btnReach"); b.disabled=true; b.textContent="Checking..."; $("reachNote").textContent="Checking views, Etsy search rank and the shop page. This takes about a minute.";
+  try{ const d=await api("/api/marketing",{action:"reach.run"}); renderReach(d.reach); $("reachNote").textContent="Done."; }catch(e){ $("reachNote").textContent=e.message||"Check failed."; } finally{ b.disabled=false; b.textContent="Check now"; } });
 /* ---------- Health check ---------- */
 const HWORD={ok:"All good",warn:"Watch",bad:"Problem",off:"Off"};
 function renderHealth(){
