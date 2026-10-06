@@ -42,7 +42,8 @@ async function etsy(path, opts = {}) {
   return data;
 }
 const CAT_WORDS = {
-  kids: ["worksheets", "learning & school", "educational", "activity books", "games & puzzles", "paper & party supplies"],
+  kids: ["worksheets", "learning & school", "educational", "activity books", "coloring books", "games & puzzles", "paper & party supplies"],
+  wallart: ["prints", "digital prints", "art & collectibles", "wall decor"],
   planner: ["calendars & planners", "planners", "paper", "paper & party supplies"],
   party: ["party games", "party supplies", "games", "paper & party supplies"],
 };
@@ -60,17 +61,13 @@ async function pickTaxonomy(category) {
   }
   return taxCache[0] && taxCache[0].id;
 }
-// Creates (or reuses) the Etsy listing for a product, uploads the photo and PDF, and optionally makes it live.
+// Creates (or reuses) the Etsy listing for a product, uploads the photos and download files, and optionally makes it live.
 async function publishProduct(prod, opts = {}) {
   const { link: l } = await accessToken();
   if (!l.shop_id) throw new Error("No Etsy shop on this account yet. Finish opening the shop on Etsy first.");
   const spec = prod.spec || {}, L = spec.listing || {};
-  let pdf = opts.pdf, image = opts.image, description = opts.description;
-  if (!pdf || !image || !description) {
-    const R = require("./_render");
-    pdf = pdf || R.pdfBuffer(spec); image = image || R.listingPNG(spec); description = description || R.listingDesc(spec);
-  }
-  const fileName = (opts.fileName || String(spec.title || "printable").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") + ".pdf");
+  const R = require("./_render");
+  const description = opts.description || R.listingDesc(spec);
   const title = String(opts.title || L.etsyTitle || spec.title).slice(0, 140);
   const tags = (L.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);
   let lid = prod.etsy_listing_id, isNew = false;
@@ -86,9 +83,14 @@ async function publishProduct(prod, opts = {}) {
   }
   const base = "/application/shops/" + l.shop_id + "/listings/" + lid;
   if (isNew || opts.reupload) {
-    const toBuf = x => Buffer.isBuffer(x) ? x : Buffer.from(String(x), "base64");
-    let f = new FormData(); f.append("image", new Blob([toBuf(image)], { type: "image/png" }), "listing-photo.png"); f.append("rank", "1"); await etsy(base + "/images", { method: "POST", body: f });
-    f = new FormData(); f.append("file", new Blob([toBuf(pdf)], { type: "application/pdf" }), fileName); f.append("name", fileName); f.append("rank", "1"); await etsy(base + "/files", { method: "POST", body: f });
+    if (!isNew) {
+      try { const im = await etsy("/application/listings/" + lid + "/images"); for (const x of (im.results || [])) await etsy(base + "/images/" + x.listing_image_id, { method: "DELETE" }); } catch (e) {}
+      try { const fl = await etsy(base + "/files"); for (const x of (fl.results || [])) await etsy(base + "/files/" + x.listing_file_id, { method: "DELETE" }); } catch (e) {}
+    }
+    const images = R.listingImages(spec);
+    for (let i = 0; i < images.length; i++) { const f = new FormData(); f.append("image", new Blob([images[i]], { type: "image/png" }), "listing-photo-" + (i + 1) + ".png"); f.append("rank", String(i + 1)); await etsy(base + "/images", { method: "POST", body: f }); }
+    const files = await R.downloadFiles(spec);
+    for (let i = 0; i < files.length && i < 5; i++) { const f = new FormData(); f.append("file", new Blob([files[i].buf], { type: files[i].type }), files[i].name); f.append("name", files[i].name); f.append("rank", String(i + 1)); await etsy(base + "/files", { method: "POST", body: f }); }
   }
   if (opts.activate) {
     await etsy(base, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ state: "active" }).toString() });

@@ -1,42 +1,36 @@
-// Server-side product rendering: the same PDF the website makes, plus the Etsy listing photo.
-const path = require("path");
-const fs = require("fs");
-const { jsPDF } = require("jspdf");
-const { Resvg } = require("@resvg/resvg-js");
-const P = require("./_printables");
+// Server-side rendering with the Moneyland design engine (lib/design): the print files and Etsy listing photos.
+const B = require("../lib/design/book");
+const WA = require("../lib/design/wallart");
+const OUT = require("../lib/design/output");
+const { clean } = require("../lib/design/core");
 
-const meter = new jsPDF({ unit: "pt", format: "letter" });
-P.setMeasure((t, size, bold) => { meter.setFont("helvetica", bold ? "bold" : "normal"); return meter.getStringUnitWidth(String(t)) * size; });
-P.setJsPDF(jsPDF);
-const FONT_DIR = __dirname;
-const FONTS = ["LiberationSans-Regular.ttf", "LiberationSans-Bold.ttf"].map(f => path.join(FONT_DIR, f));
-
-function pdfBuffer(spec) { return P.toPDF(P.layout(spec)); }
-function innerOf(svg) { return svg.slice(svg.indexOf(">") + 1, svg.lastIndexOf("</svg>")); }
-function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
-function wrap(text, size, maxW) {
-  const words = P.clean(text).split(/\s+/).filter(Boolean), out = []; let cur = "";
-  const w = t => { meter.setFont("helvetica", "bold"); return meter.getStringUnitWidth(t) * size; };
-  words.forEach(word => { const t = cur ? cur + " " + word : word; if (w(t) > maxW && cur) { out.push(cur); cur = word; } else cur = t; });
-  if (cur) out.push(cur); return { lines: out, widest: Math.max(0, ...out.map(w)) };
+const isArt = spec => spec && spec.category === "wallart";
+// Download files for Etsy: [{name, buf, type}] (max 5).
+async function downloadFiles(spec) {
+  if (isArt(spec)) return WA.files(spec);
+  const name = String(spec.title || "printable").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) + ".pdf";
+  return [{ name, buf: await B.pdf(spec), type: "application/pdf" }];
 }
-function listingSVG(spec) {
-  const ops = P.layout(spec), n = P.pagesOf(ops).length, acc = P.ACC[spec.accent] || P.ACC.purple;
-  const ph = 1320, pw = ph * P.PW / P.PH;
-  const page = i => '<svg x="0" y="0" width="' + pw + '" height="' + ph + '" viewBox="0 0 ' + P.PW + " " + P.PH + '">' + innerOf(P.toSVG(ops, i, true)) + "</svg>";
-  let s = '<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1800" viewBox="0 0 2400 1800"><rect width="2400" height="1800" fill="' + P.tint(acc, .86) + '"/>';
-  if (n > 1) s += '<g transform="translate(' + (140 + pw * 0.3) + ',190) rotate(2.9)"><rect x="14" y="18" width="' + pw + '" height="' + ph + '" fill="rgba(0,0,0,0.12)"/>' + page(1) + "</g>";
-  s += '<g transform="translate(120,250) rotate(-1.1)"><rect x="16" y="20" width="' + pw + '" height="' + ph + '" fill="rgba(0,0,0,0.16)"/><rect width="' + pw + '" height="' + ph + '" fill="#fff"/>' + page(0) + "</g>";
-  const x0 = 1580, wmax = 740; let fs = 110, t = wrap(spec.title, fs, wmax);
-  while ((t.lines.length > 4 || t.widest > wmax) && fs > 56) { fs -= 6; t = wrap(spec.title, fs, wmax); }
-  let y = 430; t.lines.forEach(l => { s += '<text x="' + x0 + '" y="' + y + '" font-family="Liberation Sans, sans-serif" font-weight="bold" font-size="' + fs + '" fill="#1F2533">' + esc(l) + "</text>"; y += fs * 1.12; });
-  s += '<rect x="' + x0 + '" y="' + (y - 20) + '" width="180" height="14" fill="' + acc + '"/>'; y += 70;
-  [n + (n > 1 ? " printable pages" : " printable page"), "Instant download", "Print at home"].forEach(line => {
-    s += '<circle cx="' + (x0 + 18) + '" cy="' + (y - 18) + '" r="14" fill="' + acc + '"/><text x="' + (x0 + 56) + '" y="' + y + '" font-family="Liberation Sans, sans-serif" font-weight="bold" font-size="52" fill="#1F2533">' + esc(line) + "</text>"; y += 92; });
-  return s + "</svg>";
+async function pdfBuffer(spec) { return isArt(spec) ? null : B.pdf(spec); }
+// Listing photos as PNG buffers, 2400 x 1800 (max 10).
+function listingImages(spec, width) {
+  const svgs = isArt(spec) ? WA.listingPhotos(spec) : B.listingPhotos(spec);
+  return svgs.slice(0, 10).map(s => Buffer.from(OUT.png(s, width || 2400)));
 }
-function listingPNG(spec) {
-  const r = new Resvg(listingSVG(spec), { font: { fontFiles: FONTS, loadSystemFonts: false, defaultFontFamily: "Liberation Sans", sansSerifFamily: "Liberation Sans" } });
-  return Buffer.from(r.render().asPng());
+function listingPNG(spec) { return listingImages(spec)[0]; }
+function listingDesc(spec) {
+  if (!isArt(spec)) return B.listingDesc(spec);
+  const L = spec.listing || {}, n = (spec.prints || []).length;
+  return [clean(L.description || spec.subtitle || spec.title), "", "WHAT YOU GET", "- " + n + (n > 1 ? " prints" : " print") + " in 5 ratio files (ZIP folders of 300 DPI JPGs)",
+    ...WA.RATIOS.map(r => "- " + r.label), "", "HOW IT WORKS", "1. Buy and download the files from your Etsy Purchases page.", "2. Print at home, at a local print shop or with an online printing service.", "3. Frame and enjoy.",
+    "", "PLEASE NOTE", "- This is a digital download. No physical print or frame will be shipped.", "- Colors can vary slightly between screens and printers.", "- For personal use only. Please do not resell or share the files."].join("\n");
 }
-module.exports = { pdfBuffer, listingPNG, listingDesc: P.listingDesc, clean: P.clean };
+// Page previews for the website.
+function previewList(spec) { return isArt(spec) ? (spec.prints || []).map((p, i) => ({ i, label: "Print " + (i + 1) })) : B.pageList(spec); }
+function previewPNG(spec, i, width) {
+  if (isArt(spec)) { const a = WA.artSVG((spec.prints || [])[i | 0] || {}, spec.palette, "3x4"); return Buffer.from(OUT.png(a.svg, width || 500)); }
+  return Buffer.from(B.pagePNG(spec, i, width || 500));
+}
+function photoPNG(spec, i, width) { const svgs = isArt(spec) ? WA.listingPhotos(spec) : B.listingPhotos(spec); return Buffer.from(OUT.png(svgs[Math.min(svgs.length - 1, i | 0)], width || 900)); }
+function photoCount(spec) { return (isArt(spec) ? WA.listingPhotos(spec) : B.listingPhotos(spec)).length; }
+module.exports = { downloadFiles, pdfBuffer, listingImages, listingPNG, listingDesc, previewList, previewPNG, photoPNG, photoCount, clean, isArt };

@@ -31,10 +31,11 @@ module.exports = async (req, res) => {
       await db("products?id=eq." + id, { method: "DELETE", prefer: "return=minimal" });
       return res.status(200).json({ ok: true });
     }
-    if (body.action === "seed" && Array.isArray(body.items)) {
+    if (body.action === "seed") {
       const have = await db("products?select=id&limit=1");
       if (have.length) return res.status(200).json({ ok: true, skipped: true });
-      const rows = body.items.slice(0, 20).filter(p => p && p.template && p.title).map(p => ({ spec: p, price: Math.min(15, Math.max(1.5, Number(p.listing && p.listing.price) || 4)), source: "starter" }));
+      const { SEEDS } = require("../lib/seeds");
+      const rows = SEEDS.slice().reverse().map(p => ({ spec: p, price: Number(p.listing.price) || 5, source: "starter", design_version: 2 }));
       const saved = rows.length ? await db("products", { method: "POST", body: rows }) : [];
       return res.status(200).json({ ok: true, products: saved });
     }

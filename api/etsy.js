@@ -60,8 +60,7 @@ const handler = async (req, res) => {
     if (body.action === "draft" || body.action === "publish") {
       const prod = (await db("products?id=eq." + parseInt(body.productId, 10)))[0];
       if (!prod) return res.status(404).json({ error: "Product not found." });
-      const r = await publishProduct(prod, { activate: body.action === "publish", reupload: !!prod.etsy_listing_id && !!body.pdf, title: body.title, description: body.description,
-        pdf: body.pdf, image: body.image, fileName: body.fileName });
+      const r = await publishProduct(prod, { activate: body.action === "publish", reupload: !!prod.etsy_listing_id && !!body.reupload, title: body.title, description: body.description });
       return res.status(200).json(Object.assign({ ok: true }, r));
     }
     return res.status(400).json({ error: "Unknown action." });
