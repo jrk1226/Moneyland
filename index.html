@@ -213,6 +213,21 @@ td.n.c{color:var(--amber)}
 @media (max-width:560px){.wrow{grid-template-columns:1fr auto auto}.wrow .s{display:none}}
 .foldbtn{margin-left:10px;align-self:center;background:rgba(166,255,92,.12);border:1px solid rgba(166,255,92,.45);color:#a6ff5c;border-radius:10px;padding:8px 14px;font:600 13px "Chakra Petch",sans-serif;cursor:pointer;white-space:nowrap}
 .foldbtn:hover{background:rgba(166,255,92,.22)}.foldbtn[aria-expanded="true"] span{display:inline-block;transform:rotate(180deg)}
+.foldbtn.mk{background:rgba(255,201,90,.12);border-color:rgba(255,201,90,.5);color:#ffc95a}
+.mkh{font:600 14px "Chakra Petch",sans-serif;letter-spacing:.08em;text-transform:uppercase;color:#ffc95a;margin:18px 0 8px}
+.brandgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.bitem{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.bitem img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff8ee;border-radius:8px}
+.bitem.wide{grid-column:span 2}.bitem.wide img{aspect-ratio:4/1}
+.bitem small{font-size:12px;opacity:.85}.bitem a{font-size:12px;color:#46e3ff}
+.pingrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px}
+.pinc{position:relative}.pinc img{width:100%;aspect-ratio:2/3;object-fit:cover;border-radius:8px;background:#fff8ee}
+.pinc span{position:absolute;left:6px;top:6px;font-size:10px;padding:2px 6px;border-radius:6px;background:rgba(2,5,12,.75)}
+.shoptext{background:rgba(255,255,255,.04);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.5}
+.shoptext b{display:block;font-size:12px;opacity:.7;margin-top:6px}
+.mklist{display:grid;gap:6px;font-size:13px}.mklist div{background:rgba(255,255,255,.04);border-radius:10px;padding:7px 10px}
+.mklist small{opacity:.65;margin-right:8px}
+@media (max-width:560px){.bitem.wide{grid-column:span 1}}
 </style>
 <style>body{margin:0}img{max-width:100%}</style>
 </head>
@@ -338,6 +353,28 @@ td.n.c{color:var(--amber)}
     </div>
   </section>
 
+  <section class="shop panel" id="marketing">
+    <div class="shophead">
+      <div><h2 style="color:#ffc95a;text-shadow:0 0 14px rgba(255,201,90,.35)">Marketing Room</h2><p>Bram gets Bright Page Prints noticed: the brand, Pinterest pins for every product, the shop's Etsy text, and search tuning for listings that get few views.</p></div>
+      <div class="vitals"><div class="vital"><small>Pins ready</small><b id="mPinsReady">0</b></div><div class="vital"><small>Pins posted</small><b id="mPinsPosted">0</b></div><button class="foldbtn mk" id="mkFold" aria-expanded="false" aria-controls="mkBody">Show <span aria-hidden="true">&#9662;</span></button></div>
+    </div>
+    <div id="mkBody" hidden>
+      <div class="makebar"><button id="btnMkRun" class="primary">Run marketing now</button><p class="note" id="mkNote">Runs on its own every 3 hours.</p></div>
+      <h3 class="mkh">Brand kit</h3>
+      <div class="brandgrid" id="brandGrid"></div>
+      <h3 class="mkh">Pinterest</h3>
+      <div class="etsybar"><span class="etsydot" id="pinDot"></span><span id="pinText">Pinterest: checking...</span><button id="btnPin" hidden>Connect Pinterest</button></div>
+      <div class="pingrid" id="pinGrid"></div>
+      <h3 class="mkh">Shop text on Etsy</h3>
+      <div class="shoptext" id="shopTextBox"><p class="note">Not written yet.</p></div>
+      <div class="pmbtns"><button id="btnShopText">Write and apply now</button><button id="btnReEtsy" hidden>Reconnect Etsy</button></div>
+      <h3 class="mkh">Search tuning</h3>
+      <div class="mklist" id="seoList"><p class="note">Listings that get fewer than 25 views in their first 2 weeks get a better Etsy title and tags.</p></div>
+      <h3 class="mkh">Marketing log</h3>
+      <div class="mklist" id="mkLog"></div>
+    </div>
+  </section>
+
   <div class="pmodal" id="pmodal" hidden role="dialog" aria-modal="true" aria-labelledby="pmTitle">
     <div class="pmbox">
       <div><div class="pmprev" id="pmPreview"></div><div class="pmbtns pager" id="pmPager"><button id="pmPrev">Prev</button><span class="note" id="pmPageNum"></span><button id="pmNext">Next</button></div></div>
@@ -379,7 +416,7 @@ const BUILD = {
   market: {name:"Etsy Publishing",     code:"SEC-02", hue:"#ff4fd8", x:390, y:50,  w:220, h:160, door:"down"},
   ledger: {name:"Sales Counter",     code:"SEC-03", hue:"#ffc95a", x:710, y:50,  w:220, h:160, door:"down"},
   cafe:   {name:"Break Room",        code:"SEC-04", hue:"#9b7bff", x:70,  y:430, w:220, h:160, door:"up"},
-  square: {name:"Meeting Plaza",       code:"SEC-05", hue:"#46e3ff", x:390, y:420, w:220, h:180, door:"up", open:true},
+  square: {name:"Marketing Room",       code:"SEC-05", hue:"#46e3ff", x:390, y:420, w:220, h:180, door:"up", open:true},
   homes:  {name:"Rest Pods",    code:"SEC-06", hue:"#3cf2c0", x:710, y:430, w:220, h:160, door:"up"},
   prod:   {name:"Product Building", code:"SEC-07", hue:"#ff8a3d", x:1030, y:50, w:250, h:160, door:"down"},
   lab:    {name:"Research Room",    code:"SEC-08", hue:"#a6ff5c", x:1030, y:430, w:250, h:160, door:"up"},
@@ -397,7 +434,7 @@ const PEOPLE = [
   {id:"iris", name:"Iris", role:"Shopkeeper", code:"MKT-2", color:"#c77dff", skill:0.7, lane:6,
    persona:"organized, friendly with buyers, careful about pricing",
    plan:[[0,8*HR,"homes","booting up"],[8*HR,12*HR,"market","running the market","shop"],[12*HR,13*HR,"cafe","refueling"],[13*HR,19*HR,"market","running the market","shop"],[19*HR,21*HR,"square","evening patrol"],[21*HR,24*HR,"homes","powering down"]]},
-  {id:"bram", name:"Bram", role:"Promoter", code:"PRM-9", color:"#ff9f1c", skill:0.65, lane:18,
+  {id:"bram", name:"Bram", role:"Marketing lead", code:"PRM-9", color:"#ff9f1c", skill:0.65, lane:18,
    persona:"loud, upbeat, always pitching; tracks what buyers like",
    plan:[[0,8*HR,"homes","recharging"],[8*HR,10*HR,"cafe","planning promotions"],[10*HR,13*HR,"square","broadcasting promos","promo"],[13*HR,15*HR,"market","watching what buyers pick","research"],[15*HR,18*HR,"square","broadcasting promos","promo"],[18*HR,20*HR,"cafe","telling stories"],[20*HR,24*HR,"homes","powering down"]]},
   {id:"nell", name:"Nell", role:"Bookkeeper", code:"LDG-1", color:"#2ee6a6", skill:0.8, lane:-12,
@@ -869,7 +906,7 @@ $("talkForm").addEventListener("submit", async ev=>{
 $("btnPlan").addEventListener("click", async ()=>{
   if(!sample) return; const btn=$("btnPlan"); btn.disabled=true; btn.textContent="Thinking...";
   $("aiNote").textContent="The district AI is studying the market. This can take up to a minute.";
-  const prompt="It is the year 2085. You plan for Moneyland, a small autonomous maker district. Its AI residents design digital products and sell them in the Etsy Publishing for pretend credits. Designers: Mara (chromatic, bioluminescent, soft-glow, liquid-metal styles) and Theo (synthwave, brutalist, glitch, monochrome styles). Iris runs the market, Bram broadcasts promos in the Meeting Plaza, Nell keeps the ledger, Otto runs the break room. The Core is the central AI brain that supervises them all and sets daily targets (today's target: "+(S.target||"not set")+" credits, time on task "+compliance()+"%).\n\nCurrent state:\n"+stateSummary()+"\n\nStudy what sells and plan the next products. Reply with only JSON in this shape:\n{\"headline\": \"one sentence from the Core on how the district is doing\", \"ideas\": [{\"name\": \"product name of 3-7 words that ends with one of: "+FORMAT_NAMES.join(", ")+"\", \"maker\": \"Mara\" or \"Theo\", \"why\": \"short reason\"}], \"lines\": [{\"who\": \"resident name\", \"says\": \"what they say, under 90 characters\"}]}\nGive exactly 4 ideas, 2 for each designer, and one line for each of the 6 residents. No emojis.";
+  const prompt="It is the year 2085. You plan for Moneyland, a small autonomous maker district. Its AI residents design digital products and sell them in the Etsy Publishing for pretend credits. Designers: Mara (chromatic, bioluminescent, soft-glow, liquid-metal styles) and Theo (synthwave, brutalist, glitch, monochrome styles). Iris runs the market, Bram runs marketing in the Marketing Room, Nell keeps the ledger, Otto runs the break room. The Core is the central AI brain that supervises them all and sets daily targets (today's target: "+(S.target||"not set")+" credits, time on task "+compliance()+"%).\n\nCurrent state:\n"+stateSummary()+"\n\nStudy what sells and plan the next products. Reply with only JSON in this shape:\n{\"headline\": \"one sentence from the Core on how the district is doing\", \"ideas\": [{\"name\": \"product name of 3-7 words that ends with one of: "+FORMAT_NAMES.join(", ")+"\", \"maker\": \"Mara\" or \"Theo\", \"why\": \"short reason\"}], \"lines\": [{\"who\": \"resident name\", \"says\": \"what they say, under 90 characters\"}]}\nGive exactly 4 ideas, 2 for each designer, and one line for each of the 6 residents. No emojis.";
   try{
     const plan=await sample.json(prompt,{cache:false});
     if(plan&&plan.headline) log(String(plan.headline),"ai big");
@@ -1320,6 +1357,7 @@ async function startData(){
   }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Room and daily research run on the Moneyland website. This copy keeps products in this browser."; }
   renderShopBoard(); renderLab(); etsyStatus(); renderAuto(); renderRooms();
   if(MODE==="db") setInterval(refresh,60000);
+  if(MODE==="db" && !$("mkBody").hidden) loadMarketing();
 }
 async function updateItem(it,fields){
   Object.assign(it,fields); renderShopBoard();
@@ -1487,9 +1525,9 @@ const ROOMS=[
   {k:"prod",   real:"build_on",    desc:"Builds new products from the best ideas"},
   {k:"market", real:"publish_on",  desc:"Publishes products to your Etsy shop"},
   {k:"ledger", real:"sales_on",    desc:"Counts real Etsy sales every 15 minutes"},
+  {k:"square", real:"marketing_on", desc:"Pinterest pins, shop text and search tuning"},
   {k:"studio", real:null, desc:"Designers' workshop (animation only)"},
   {k:"cafe",   real:null, desc:"Where residents take breaks (animation only)"},
-  {k:"square", real:null, desc:"Promotions and meetups (animation only)"},
   {k:"homes",  real:null, desc:"Where residents recharge (animation only)"},
 ];
 let LOCALROOMS={}; try{ LOCALROOMS=JSON.parse(localStorage.getItem("moneyland-rooms")||"{}"); }catch(e){}
@@ -1553,6 +1591,41 @@ if(window.claude && window.claude.use){ window.claude.use("downloads").then(x=>{
 (function(){ const b=$("labFold"), body=$("labBody"); let open=false; try{ open=localStorage.getItem("moneyland-lab-open")==="1"; }catch(e){}
   const set=o=>{ body.hidden=!o; b.setAttribute("aria-expanded",String(o)); b.innerHTML=(o?"Hide ideas":"Show ideas")+' <span aria-hidden="true">&#9662;</span>'; try{ localStorage.setItem("moneyland-lab-open",o?"1":"0"); }catch(e){} };
   set(open); b.addEventListener("click",()=>set(body.hidden)); })();
+(function(){ const b=$("mkFold"), body=$("mkBody"); let open=false; try{ open=localStorage.getItem("moneyland-mk-open")==="1"; }catch(e){}
+  const set=o=>{ body.hidden=!o; b.setAttribute("aria-expanded",String(o)); b.innerHTML=(o?"Hide":"Show")+' <span aria-hidden="true">&#9662;</span>'; try{ localStorage.setItem("moneyland-mk-open",o?"1":"0"); }catch(e){} if(o) loadMarketing(); };
+  set(open); b.addEventListener("click",()=>set(body.hidden)); })();
+function mkURL(q){ return "/api/marketing?"+q+"&code="+encodeURIComponent(accessCode||""); }
+const BRAND=[["logo","Logo"],["logo_badge","Logo, badge"],["icon","Etsy shop icon"],["logo_wide","Logo, wide"],["banner","Etsy shop banner",1],["receipt","Order receipt banner",1]];
+let MK=null;
+function renderMarketing(){
+  if(MODE!=="db"){ $("brandGrid").innerHTML='<p class="note">The Marketing Room runs on the Moneyland website.</p>'; return; }
+  if(!$("brandGrid").querySelector(".bitem")){ $("brandGrid").innerHTML=""; BRAND.forEach(([k,label,wide])=>{ const d=document.createElement("div"); d.className="bitem"+(wide?" wide":"");
+    d.innerHTML='<img loading="lazy" alt=""><small></small><a target="_blank" rel="noopener">Download full size</a>'; d.querySelector("img").src=mkURL("kind=asset&name="+k+"&w="+(wide?800:400)); d.querySelector("small").textContent=label; d.querySelector("a").href=mkURL("kind=asset&name="+k+"&download=1"); $("brandGrid").appendChild(d); }); }
+  if(!MK) return;
+  const pins=MK.pins||[]; $("mPinsReady").textContent=pins.filter(p=>p.status==="ready").length; $("mPinsPosted").textContent=pins.filter(p=>p.status==="posted").length;
+  const pi=MK.pinterest||{}; $("pinDot").className="etsydot"+(pi.connected?" on":"");
+  $("pinText").textContent=!pi.configured?"Pinterest: waiting for the Pinterest app keys. Pins are made and saved here until then.":!pi.connected?"Pinterest: keys added. Tap Connect Pinterest and approve.":"Pinterest: connected"+(pi.username?" as "+pi.username:"")+". Posting up to 5 pins a day.";
+  $("btnPin").hidden=!(pi.configured&&!pi.connected);
+  $("pinGrid").innerHTML=""; pins.slice(0,18).forEach(p=>{ const d=document.createElement("a"); d.className="pinc"; d.href=mkURL("kind=pin&id="+p.id+"&download=1"); d.target="_blank"; d.rel="noopener"; d.title=p.title||"";
+    d.innerHTML='<img loading="lazy" alt=""><span></span>'; d.querySelector("img").src=mkURL("kind=pin&id="+p.id+"&w=240"); d.querySelector("span").textContent=p.status==="posted"?"Posted":p.note?"Retrying":"Ready"; $("pinGrid").appendChild(d); });
+  if(!pins.length) $("pinGrid").innerHTML='<p class="note">Pins are made for every product once it is live on Etsy.</p>';
+  const t=MK.shopText; if(t){ $("shopTextBox").innerHTML='<b>Headline</b><div></div><b>Announcement</b><div></div><b>Thank-you message to buyers</b><div></div><b>Status</b><div></div>';
+    const v=$("shopTextBox").querySelectorAll("div"); v[0].textContent=t.title||""; v[1].textContent=t.announcement||""; v[2].textContent=t.digital_sale_message||""; v[3].textContent=t.applied?"Live on your Etsy shop.":"Written, not saved to Etsy yet"+(t.error?" (Etsy needs one more permission: tap Reconnect Etsy).":".");
+    $("btnReEtsy").hidden=!!t.applied; }
+  $("seoList").innerHTML=""; (MK.seo||[]).forEach(x=>{ const d=document.createElement("div"); d.innerHTML='<small></small><span></span>'; d.querySelector("small").textContent=ago(x.at); d.querySelector("span").textContent="New title: "+x.new_title+" (had "+x.views_before+" views). "+(x.note||""); $("seoList").appendChild(d); });
+  if(!(MK.seo||[]).length) $("seoList").innerHTML='<p class="note">Listings that get fewer than 25 views in their first 2 weeks get a better Etsy title and tags. Nothing needed yet.</p>';
+  $("mkLog").innerHTML=""; (MK.log||[]).forEach(x=>{ const d=document.createElement("div"); d.innerHTML='<small></small><span></span>'; d.querySelector("small").textContent=ago(x.at); d.querySelector("span").textContent=x.text; $("mkLog").appendChild(d); });
+  if(!(MK.log||[]).length) $("mkLog").innerHTML='<p class="note">Nothing yet. The first run makes pins and writes the shop text.</p>';
+}
+async function loadMarketing(){ if(MODE!=="db"){ renderMarketing(); return; } try{ MK=await api("/api/marketing",{action:"status"}); }catch(e){} renderMarketing(); }
+$("btnMkRun").addEventListener("click",async()=>{ const b=$("btnMkRun"); b.disabled=true; b.textContent="Marketing..."; $("mkNote").textContent="Making pins, writing shop text and checking slow listings. This can take a minute or two.";
+  try{ const d=await api("/api/marketing",{action:"run"}); $("mkNote").textContent="Done. "+(d.pinsMade?d.pinsMade+" new pins. ":"")+(d.shopText?"Shop text: "+d.shopText+". ":"")+(d.seo?d.seo+" listings tuned.":""); log("Marketing Room ran","core"); const br=V.find(v=>v.id==="bram"); if(br) say(br,"Fresh pins and shop text are ready.",4000); }
+  catch(e){ $("mkNote").textContent=e.message||"Marketing run failed."; } finally{ b.disabled=false; b.textContent="Run marketing now"; loadMarketing(); } });
+$("btnShopText").addEventListener("click",async()=>{ const b=$("btnShopText"); b.disabled=true; b.textContent="Writing..."; try{ await api("/api/marketing",{action:"shoptext.apply"}); }catch(e){ $("mkNote").textContent=e.message||""; } finally{ b.disabled=false; b.textContent="Write and apply now"; loadMarketing(); } });
+$("btnPin").addEventListener("click",()=>{ window.location.href=mkURL("do=pconnect"); });
+$("btnReEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=connect&code="+encodeURIComponent(accessCode||""); });
+(function(){ const m=new URLSearchParams(location.search).get("pinterest"); if(m){ setTimeout(()=>{ $("mkNote").textContent= m==="connected"?"Pinterest is connected.":m; },300); history.replaceState(null,"",location.pathname+"#marketing"); } })();
+setInterval(()=>{ if(!$("mkBody").hidden) loadMarketing(); },300000);
 /* ---------- boot ---------- */
 placeAtHome(); resize();
 if(!S.log.length) log("Moneyland comes online. Day 1 begins.","big");

@@ -27,6 +27,13 @@
     },
     "api/data.js": {
       "maxDuration": 30
+    },
+    "api/marketing.js": {
+      "maxDuration": 300,
+      "includeFiles": "{lib/design/fonts/*.ttf,node_modules/pdfkit/js/data/*.afm,node_modules/pdfkit/js/data/*.icc}"
+    },
+    "api/pinterest-callback.js": {
+      "maxDuration": 30
     }
   },
   "crons": [
@@ -41,6 +48,10 @@
     {
       "path": "/api/etsy-sync",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/marketing?do=cron",
+      "schedule": "20 */3 * * *"
     }
   ]
 }
