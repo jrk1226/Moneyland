@@ -166,6 +166,8 @@ td.n.c{color:var(--amber)}
 .iev{margin:0;font-size:12px;color:var(--muted)}
 .isrc{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px}
 .isrc a{color:var(--cyan)}
+@keyframes moneyflash{0%{box-shadow:0 0 0 0 rgba(255,201,90,.9);background:rgba(255,201,90,.35)}100%{box-shadow:0 0 0 18px rgba(255,201,90,0);background:var(--glass2)}}
+.vital.flash{animation:moneyflash 1.6s ease-out}
 .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -180,8 +182,8 @@ td.n.c{color:var(--amber)}
     <div class="vitals">
       <div class="vital"><small>Day</small><b id="vDay">1</b></div>
       <div class="vital time"><small>Local time</small><b id="vTime">06:00</b></div>
-      <div class="vital coin"><small>Credits</small><b id="vCoins">0</b></div>
-      <div class="vital"><small>Sold today</small><b id="vSales">0</b></div>
+      <div class="vital coin" id="vMoneyBox"><small>Real money</small><b id="vCoins">$0.00</b></div>
+      <div class="vital"><small>Items sold</small><b id="vSales">0</b></div>
       <div class="vital"><small>On task</small><b id="vTask">6/6</b></div>
       <div class="vital"><small>Buzz</small><div class="seg" id="vBuzz"></div></div>
     </div>
@@ -197,8 +199,8 @@ td.n.c{color:var(--amber)}
     <section class="stage panel">
       <div class="mapbox"><canvas id="map" aria-label="District map. Click a resident to select them."></canvas></div>
       <div class="ai">
-        <p id="aiNote">Residents run on their own. Ask the district AI to study the market and plan new products.</p>
-        <button id="btnPlan" class="primary">Core: plan with AI</button>
+        <p id="aiNote">Residents run on their own. Click any resident or the Core to talk to them.</p>
+        <button id="btnPlan" class="primary" hidden>Core: plan with AI</button>
         <form id="codeForm" class="row" hidden style="flex:1 1 100%"><input type="password" id="codeInput" placeholder="Access code" autocomplete="off"><button type="submit">Unlock AI</button></form>
       </div>
     </section>
@@ -206,14 +208,13 @@ td.n.c{color:var(--amber)}
     <aside class="side panel">
       <div class="tabs" role="tablist">
         <button role="tab" data-tab="people" aria-selected="true">Crew</button>
-        <button role="tab" data-tab="shop" aria-selected="false">Market</button>
         <button role="tab" data-tab="log" aria-selected="false">Log</button>
       </div>
       <div class="pane" id="pane-people">
         <div class="corebox" id="coreBox" tabindex="0" aria-label="Core. Click to talk to the Core.">
           <div class="corehead"><div class="coreorb"></div><div><b>CORE</b><br><span id="coreStatus">Monitoring 6 residents</span></div></div>
           <div class="corestats">
-            <div><small>Today's target</small><b id="cTarget">-</b></div>
+            <div><small>Real money</small><b id="cTarget">$0.00</b></div>
             <div><small>Time on task</small><b id="cComp">100%</b></div>
             <div><small>Directives today</small><b id="cDirs">0</b></div>
             <div><small>Focus format</small><b id="cFocus">Learning</b></div>
@@ -300,7 +301,7 @@ td.n.c{color:var(--amber)}
   </div>
 
   <div class="foot">
-    <span>Credits in the district are pretend. Real money only comes from the Real shop below.</span>
+    <span>Real money only counts actual Etsy sales. Nothing else adds to it.</span>
     <button id="btnReset">Reset district</button>
   </div>
 </div>
@@ -393,8 +394,9 @@ function coreStep(prev, m){
     S.target=Math.max(30, Math.round(avg*1.1));
     const tally={}; S.products.forEach(p=>{ const f=fmtOf(p.name); if(f&&p.sold) tally[f]=(tally[f]||0)+p.sold; });
     const best=Object.entries(tally).sort((a,b)=>b[1]-a[1])[0]; S.focus=best?best[0]:null;
-    log("Morning briefing. Target today: "+S.target+" credits."+(S.focus?" Designers focus on "+S.focus+".":""),"core");
-    say(CORE,"Target today: "+S.target+" credits."+(S.focus?" Focus: "+S.focus+".":""),4500);
+    const waitingOK=(typeof SHOP!=="undefined")?SHOP.items.filter(i=>i.status==="review").length:0, newIdeas=(typeof IDEAS!=="undefined")?IDEAS.filter(i=>i.status==="new").length:0;
+    log("Morning briefing. Real money so far: $"+realMoney().toFixed(2)+". "+waitingOK+" products waiting for Josh's OK, "+newIdeas+" new ideas in the Research Lab.","core");
+    say(CORE,waitingOK+" products need Josh's OK. "+newIdeas+" new ideas.",4500);
   }
   const iris=V.find(v=>v.id==="iris"), bram=V.find(v=>v.id==="bram");
   if(Math.floor(prev/HR)!==Math.floor(m/HR)){
@@ -406,10 +408,7 @@ function coreStep(prev, m){
       S.listFast=true; issue(iris,"Backlog of "+pending+" designs. List faster.","On it.");
     }
     const hour=Math.floor(m/HR);
-    if(S.target && hour>=13 && hour<=18 && S.todayCoins < S.target*(hour-8)/11*0.6 && hour%3===1){
-      log("Sales are behind target ("+S.todayCoins+" of "+S.target+" credits).","core");
-      say(CORE,"Behind target: "+S.todayCoins+" of "+S.target+".",3500);
-    }
+
   }
   if(crossed(12*HR)){
     const stale=S.products.filter(p=>p.listed && p.sold===0 && S.day-p.day>=2 && (p.cuts||0)<2);
@@ -470,10 +469,10 @@ function stepSim(dm){
     }
     if(v.drift || v.place!==target) return;
     if(v.work==="design"){ v.progress+=dm*(0.45+v.skill*0.5); if(v.progress>=100){ v.progress=0; makeProduct(v); } }
-    if(v.work==="shop" && m-v.lastListed>(S.listFast?10:25)){ const p=S.products.find(p=>!p.listed); if(p){ p.listed=true; v.lastListed=m; say(v,"Listed "+p.name+" for "+p.price+" credits"); log("Iris listed "+p.name+" for "+p.price+" credits"); } }
+    if(v.work==="shop" && m-v.lastListed>(S.listFast?10:25)){ const p=S.products.find(p=>!p.listed); if(p){ p.listed=true; v.lastListed=m; say(v,"Restocked the Holo Market display."); } }
     if(v.work==="promo"){ S.buzz=clamp(S.buzz+dm*0.0022*(0.6+v.skill)*(v.boostUntil>m?1.7:1),0,1); if(Math.random()<dm*0.01) say(v,pick(["New drops at the Holo Market!","Fresh holo prints, live now!","Best little market on the grid!","Ask Iris about the new AR filters!"])); }
     if(v.work==="research" && Math.random()<dm*0.004){ const best=bestSeller(); if(best) say(v,"Buyers keep picking "+best.name+". Logged."); }
-    if(v.work==="books" && Math.floor(prev/120)!==Math.floor(m/120)) say(v,"Ledger synced: "+S.todayCoins+" credits today.");
+    if(v.work==="books" && Math.floor(prev/120)!==Math.floor(m/120)) say(v,"Ledger: $"+realMoney().toFixed(2)+" in real Etsy sales.");
     if(v.work==="research2" && Math.random()<dm*0.006){ const fresh=(typeof IDEAS!=="undefined"?IDEAS:[]).filter(i=>i.status==="new"); say(v, fresh.length? "Idea for Josh: "+fresh[Math.floor(Math.random()*fresh.length)].title : pick(["Checking Etsy best sellers...","Holiday printables are heating up.","Bundles are outselling single pages.","Tracking what buyers search for."]),4200); }
     if(v.work==="produce" && Math.random()<dm*0.006){ const q=(typeof SHOP!=="undefined"?SHOP.items:[]); const w=q.filter(i=>i.status==="review"); say(v, w.length? w.length+" products waiting for Josh's OK." : pick(["Line is clear. Ready for new ideas.","Checking page layouts.","Packing PDFs for Etsy."]),4200); }
   });
@@ -491,7 +490,7 @@ function stepSim(dm){
           const p=weighted(listed,p=>Math.pow(p.quality/50,2)*(1+0.15*Math.max(0,3-(S.day-p.day))));
           if(Math.random()<0.32+p.quality/220+S.buzz*0.18){
             p.sold++; S.coins+=p.price; S.todayCoins+=p.price; S.todaySales++;
-            say(c,"Bought "+p.name,3200); log("A visitor bought "+p.name+" for "+p.price+" credits","sale");
+            say(c,pick(["Nice designs!","Love the new prints.","Great stuff in here."]),3000);
           } else say(c,pick(["Just browsing.","Maybe next cycle.","Not my style."]),2600);
         }
         c.state="out"; const d=door("market"); c.path=[{x:d.x,y:d.y},{x:d.x,y:ROADY+c.lane},{x:W+30,y:ROADY+c.lane}]; c.place=null;
@@ -514,7 +513,7 @@ function chatLine(){
   const best=bestSeller(), pending=S.products.filter(p=>!p.listed).length;
   const L=[
     ["What should I render next?", best?"Something like "+best.name+". It keeps selling.":"Something people want glowing on their walls."],
-    ["We're at "+S.coins+" credits.","Solid for a district this size."],
+    ["Real money so far: $"+realMoney().toFixed(2)+".","Every Etsy sale counts."],
     ["The plaza was packed today.","That's Bram's broadcasts working."],
     ["Buyers keep asking for holo prints.","Then we render more holo prints."],
     ["Fuel's good today, Otto.","Same blend as always."],
@@ -526,8 +525,7 @@ function chatLine(){
 function endDay(){
   const best=bestSeller();
   S.history.push({day:S.day, coins:S.todayCoins, sales:S.todaySales}); if(S.history.length>30) S.history.shift();
-  log("Day "+S.day+" closed: "+S.todaySales+" sales, "+S.todayCoins+" credits."+(best?" All-time best seller: "+best.name+".":""),"big");
-  if(S.target) log((S.todayCoins>=S.target?"Target met: ":"Target missed: ")+S.todayCoins+" of "+S.target+" credits. Time on task "+compliance()+"%. "+S.dirToday+" directive"+(S.dirToday===1?"":"s")+" issued.","core");
+  log("Day "+S.day+" closed. Real money so far: $"+realMoney().toFixed(2)+". Time on task "+compliance()+"%. "+S.dirToday+" directive"+(S.dirToday===1?"":"s")+" issued.","core");
   S.dirToday=0; S.onMin=0; S.workMin=0; S.listFast=false; V.forEach(v=>{ v.drift=null; v.boostUntil=0; });
   S.day++; S.minute=DAY_START; S.todayCoins=0; S.todaySales=0; S.buzz=clamp(S.buzz*0.6,0.05,1);
   C=[]; placeAtHome(); V.forEach(v=>{v.chatCool=0; v.lastListed=0;}); save(); renderShop();
@@ -716,7 +714,7 @@ function renderCore(){
   const off=V.filter(v=>v.drift).length;
   $("coreStatus").textContent= off ? off+" resident"+(off>1?"s":"")+" off task. Correcting." : "All residents on task";
   $("coreStatus").style.color= off ? "var(--magenta)" : "var(--teal)";
-  $("cTarget").textContent= S.target ? S.todayCoins+" / "+S.target : "Set at 07:00";
+  $("cTarget").textContent="$"+realMoney().toFixed(2);
   $("cComp").textContent=compliance()+"%"; $("cDirs").textContent=S.dirToday; $("cFocus").textContent=S.focus||"Learning";
   $("cList").innerHTML=S.dirLog.slice(0,4).map(d=>'<li><time>'+d.t+'</time>'+esc(d.who)+': '+esc(d.text)+'</li>').join("") || '<li style="border-color:var(--line);color:var(--muted)">No directives yet.</li>';
   $("coreBox").style.borderColor = selected==="core" ? "var(--cyan)" : "";
@@ -744,9 +742,14 @@ function renderPeople(){
     const pg=d.querySelector(".prog"), isD=v.role==="Designer"; pg.hidden=!isD; if(isD) pg.firstChild.style.width=Math.round(v.progress)+"%";
   });
 }
+let lastMoney=null;
+function realMoney(){ return (typeof SHOP!=="undefined"&&SHOP.items)?SHOP.items.reduce((a,i)=>a+(i.sales||0)*Number(i.price||0),0):0; }
+function realSold(){ return (typeof SHOP!=="undefined"&&SHOP.items)?SHOP.items.reduce((a,i)=>a+(i.sales||0),0):0; }
 function renderTop(){
   $("vDay").textContent=S.day; $("vTime").textContent=fmtTime(S.minute);
-  $("vCoins").textContent=S.coins.toLocaleString(); $("vSales").textContent=S.todaySales;
+  const money=realMoney(); $("vCoins").textContent="$"+money.toFixed(2); $("vSales").textContent=realSold();
+  if(lastMoney!==null && money>lastMoney+0.001){ const bx=$("vMoneyBox"); bx.classList.remove("flash"); void bx.offsetWidth; bx.classList.add("flash"); say(CORE,"Real Etsy sale! Total: $"+money.toFixed(2),5000); }
+  lastMoney=money;
   const off=V.filter(v=>v.drift).length; $("vTask").textContent=(V.length-off)+"/"+V.length; $("vTask").style.color=off?"var(--magenta)":"";
   const on=Math.round(S.buzz*10); [...$("vBuzz").children].forEach((i,n)=>i.classList.toggle("on",n<on));
 }
@@ -767,13 +770,13 @@ setInterval(()=>{ renderTop(); if(activeTab==="people"){ renderPeople(); renderC
 let sample=null; const chats={};
 const OFF_CODES=["not_granted","sampling_disabled","not_declared","capability_disabled"];
 function errCopy(code){ return ({not_granted:"AI is turned off for this page.",sampling_disabled:"AI isn't available on this account.",rate_limited:"Too many questions at once. Try again in a minute.",session_expired:"Sign in again to use AI.",refused:"The AI declined that one. Try asking differently.",invalid_json:"The plan came back garbled. Try again.",cancelled:"",needs_code:"Enter the access code below to use AI.",not_configured:"The AI key isn't set up on this site yet."})[code] || "Something went wrong reaching the AI. Try again."; }
-function aiOff(code){ $("btnPlan").hidden=true; $("talkForm").hidden=true;
-  $("aiNote").textContent= code?errCopy(code):"Residents run on their own. AI planning and conversations work when this page is opened in Claude.";
+function aiOff(code){ $("talkForm").hidden=true;
+  $("aiNote").textContent= code?errCopy(code):"Residents run on their own. Conversations with them need the AI key.";
   $("talkNote").textContent="Conversations need AI, which isn't available here."; }
 function stateSummary(){
   const real=(typeof SHOP!=="undefined")?"\nReal Etsy shop: "+SHOP.items.filter(i=>i.status==="review").length+" products waiting for Josh's approval, "+SHOP.items.filter(i=>i.status==="listed").length+" live on Etsy. Newest research ideas: "+((typeof IDEAS!=="undefined"?IDEAS:[]).filter(i=>i.status==="new").slice(0,5).map(i=>i.title).join("; ")||"none yet")+".":"";
   const top=S.products.filter(p=>p.listed).sort((a,b)=>b.sold-a.sold).slice(0,12).map(p=>p.name+" by "+p.maker+", "+p.price+" credits, sold "+p.sold+", quality "+p.quality).join("\n");
-  return "Day "+S.day+", "+fmtTime(S.minute)+". Total credits: "+S.coins+". Sold today: "+S.todaySales+". Buzz: "+Math.round(S.buzz*100)+"%. Products listed: "+S.products.filter(p=>p.listed).length+".\nTop products:\n"+(top||"none yet")+"\nRecent days: "+(S.history.slice(-5).map(h=>"day "+h.day+" "+h.coins+" credits").join(", ")||"none")+real;
+  return "Day "+S.day+", "+fmtTime(S.minute)+". Real money from Etsy sales so far: $"+realMoney().toFixed(2)+" ("+realSold()+" items sold). Buzz: "+Math.round(S.buzz*100)+"%."+real;
 }
 function who(id){ return id==="core"?CORE:V.find(x=>x.id===id); }
 function selectVillager(id){
@@ -790,8 +793,8 @@ $("talkForm").addEventListener("submit", async ev=>{
   const v=who(selected), turns=(chats[selected]=chats[selected]||[]);
   turns.push({role:"user",content:q}); $("talkInput").value=""; renderChat();
   const el=document.createElement("div"); el.className="msg"; el.textContent="Thinking..."; $("chat").appendChild(el); $("chat").scrollTop=1e6; $("talkSend").disabled=true;
-  const rules = v===CORE ? "It is the year 2085. You are the Core, "+CORE.persona+". You run Moneyland, a small autonomous maker district where AI residents design digital products and sell them for pretend credits. Today's target: "+(S.target||"not set yet")+" credits. Time on task today: "+compliance()+"%. Directives issued today: "+S.dirToday+". Residents right now:\n"+V.map(r=>r.name+" ("+r.role+"): "+(r.drift?"OFF TASK, ":"")+(r.place?r.activity+" at "+BUILD[r.place].name:"heading to "+BUILD[r.dest].name)).join("\n")+"\nRecent directives: "+(S.dirLog.slice(0,5).map(d=>d.who+": "+d.text).join("; ")||"none")+"\nDistrict facts:\n"+stateSummary()+"\nAnswer the visitor as the Core in 1-3 short sentences. Plain text only, no emojis, no stage directions."
-  : "It is the year 2085. You are "+v.name+", an AI resident and the "+v.role.toLowerCase()+" in Moneyland, a small autonomous maker district where AI residents design digital products (holo prints, posters, sticker sheets, AR filters, cards) and sell them for pretend credits. Your personality: "+v.persona+". Right now you are "+(v.place?v.activity+" at the "+BUILD[v.place].name:"heading to the "+BUILD[v.dest].name)+". District facts:\n"+stateSummary()+"\nThe other residents: "+PEOPLE.filter(p=>p.id!==v.id).map(p=>p.name+" ("+p.role+")").join(", ")+".\nReply in character to the visitor in 1-3 short sentences. Plain text only, no emojis, no stage directions.";
+  const rules = v===CORE ? "It is the year 2085. You are the Core, "+CORE.persona+". You run Moneyland, a small autonomous maker district where AI residents design digital products for Josh's real Etsy shop of printable digital downloads. Real money from Etsy sales so far: $"+realMoney().toFixed(2)+". Time on task today: "+compliance()+"%. Directives issued today: "+S.dirToday+". Residents right now:\n"+V.map(r=>r.name+" ("+r.role+"): "+(r.drift?"OFF TASK, ":"")+(r.place?r.activity+" at "+BUILD[r.place].name:"heading to "+BUILD[r.dest].name)).join("\n")+"\nRecent directives: "+(S.dirLog.slice(0,5).map(d=>d.who+": "+d.text).join("; ")||"none")+"\nDistrict facts:\n"+stateSummary()+"\nAnswer the visitor as the Core in 1-3 short sentences. Plain text only, no emojis, no stage directions."
+  : "It is the year 2085. You are "+v.name+", an AI resident and the "+v.role.toLowerCase()+" in Moneyland, a small autonomous maker district where AI residents design real printable products (kids activity packs, planners and trackers, party printables) for Josh's Etsy shop. Your personality: "+v.persona+". Right now you are "+(v.place?v.activity+" at the "+BUILD[v.place].name:"heading to the "+BUILD[v.dest].name)+". District facts:\n"+stateSummary()+"\nThe other residents: "+PEOPLE.filter(p=>p.id!==v.id).map(p=>p.name+" ("+p.role+")").join(", ")+".\nReply in character to the visitor in 1-3 short sentences. Plain text only, no emojis, no stage directions.";
   try{
     const {text}=await sample([{role:"user",content:rules},...turns.slice(-10)],{modelTier:"quick",cache:false,onText:({text})=>{ el.textContent=text; $("chat").scrollTop=1e6; }});
     turns.push({role:"assistant",content:text}); say(v,text.length>110?text.slice(0,107)+"...":text,6000);
