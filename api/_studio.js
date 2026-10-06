@@ -77,24 +77,8 @@ function scenePrompt(mood, variant) {
     + "Soft natural window light from the upper left, soft realistic shadows, warm and inviting, photorealistic, high detail. No people, no hands, no text, no letters, no logos, no brand names.";
 }
 
-// ---------- AI photographer ----------
-const IMAGE_MODELS = () => (process.env.OPENAI_IMAGE_MODEL ? [process.env.OPENAI_IMAGE_MODEL] : []).concat(["gpt-image-2", "gpt-image-1.5", "gpt-image-1"]);
-let goodModel = null;
-async function aiImage(prompt) {
-  let last;
-  for (const model of goodModel ? [goodModel] : IMAGE_MODELS()) {
-    const r = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST", headers: { Authorization: "Bearer " + openaiKey(), "content-type": "application/json" },
-      body: JSON.stringify({ model, prompt, size: "1536x1024", quality: "medium", n: 1 }),
-    });
-    const d = await r.json().catch(() => ({}));
-    if (r.ok && d.data && d.data[0] && d.data[0].b64_json) { goodModel = model; return { png: Buffer.from(d.data[0].b64_json, "base64"), model }; }
-    last = new Error("Picture AI: " + ((d.error && d.error.message) || r.status));
-    last.status = r.status;
-    if (r.status === 401 || r.status === 429 || /billing|quota|limit/i.test(last.message)) throw last; // key or money problem: no point trying other models
-  }
-  throw last;
-}
+// ---------- AI photographer (ChatGPT) ----------
+async function aiImage(prompt) { return require("./_openai").image(prompt, { size: "1536x1024", quality: "medium" }); }
 // Claude looks at a picture and scores it.
 async function lookAt(png, question) {
   const sharp = require("sharp");
@@ -250,6 +234,12 @@ async function upgradeListing(prod, deadline, note) {
     try { media.video = await putFile("listings/" + prod.id + "/video.mp4", mp4, "video/mp4"); } catch (e) {}
     await note("Studio: made a " + Math.round(seconds) + "-second video for \"" + prod.spec.title + "\" and added it to the Etsy listing.");
   }
+  // Etsy rule: say in the description that AI tools were used
+  if (!media.disclosed) {
+    try { const { etsy, link } = require("./_etsy"), R = require("./_render"), l = await link();
+      await etsy("/application/shops/" + l.shop_id + "/listings/" + prod.etsy_listing_id, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ description: R.listingDesc(prod.spec).slice(0, 60000) }).toString() });
+      media.disclosed = true; } catch (e) { media.disclose_error = String(e.message).slice(0, 160); media.disclose_tries = (media.disclose_tries || 0) + 1; }
+  }
   media.version = MEDIA_VERSION; media.at = new Date().toISOString();
   await db("products?id=eq." + prod.id, { method: "PATCH", body: { media } });
   return media;
@@ -259,6 +249,6 @@ async function nextForStudio() {
   const live = await db("products?select=*&etsy_state=eq.active&order=published_at.asc");
   const key = imagesConfigured();
   return live.find(p => { const m = p.media || {}; if (m.failures >= 3 && Date.now() - new Date(m.failed_at || 0).getTime() < 86400000) return false;
-    return !m.video_id || (key && !m.lifestyle_done && !(m.lifestyle_blocked_at && Date.now() - new Date(m.lifestyle_blocked_at).getTime() < 6 * 3600000)); }) || null;
+    return !m.video_id || (!m.disclosed && (m.disclose_tries || 0) < 3) || (key && !m.lifestyle_done && !(m.lifestyle_blocked_at && Date.now() - new Date(m.lifestyle_blocked_at).getTime() < 6 * 3600000)); }) || null;
 }
 module.exports = { upgradeListing, nextForStudio, imagesConfigured, moodOf, lifestylePhotos, flatLayouts, wallLayout, sceneBase, putFile, publicURL, MEDIA_VERSION };

@@ -8,6 +8,8 @@ function sanitize(paths) {
 }
 function artSvg(art, size) {
   const s = size || 400;
+  if (art.mode === "filled") { const vb = art.viewBox || [0, 0, 1024, 1024];
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${vb.join(" ")}" width="${s}" height="${s}"><rect x="${vb[0]}" y="${vb[1]}" width="${vb[2]}" height="${vb[3]}" fill="#fff"/>` + art.paths.map(d => `<path d="${d}" fill="#111" fill-rule="evenodd"/>`).join("") + "</svg>"; }
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="${s}" height="${s}"><rect width="400" height="400" fill="#fff"/>`
     + art.paths.map(d => `<path d="${d}" fill="#fff" stroke="#111" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>`).join("") + "</svg>";
 }
@@ -36,7 +38,7 @@ async function review(items) {
     content.push({ type: "text", text: "Picture " + (i + 1) + " should show: " + it.subject });
     content.push({ type: "image", source: { type: "base64", media_type: "image/png", data: Buffer.from(OUT.png(artSvg(it.art, 400), 400)).toString("base64") } });
   });
-  content.push({ type: "text", text: "You are the quality checker for a coloring book that will be sold to parents. For each picture, score 1-10: is the subject clearly recognizable, is it clean and well drawn with closed shapes that are easy to color, and would a paying customer be happy with it? Messy scribbles, broken shapes, unrecognizable subjects or overlapping lines that make a mess score 5 or less. Reply with only JSON: {\"scores\": [{\"n\": 1, \"score\": 8, \"note\": \"short\"}, ...]}" });
+  content.push({ type: "text", text: "Note: pictures may be drawn by ChatGPT or by Claude; judge only the picture. You are the quality checker for a coloring book that will be sold to parents. For each picture, score 1-10: is the subject clearly recognizable, is it clean and well drawn with closed shapes that are easy to color, and would a paying customer be happy with it? Messy scribbles, broken shapes, unrecognizable subjects or overlapping lines that make a mess score 5 or less. Reply with only JSON: {\"scores\": [{\"n\": 1, \"score\": 8, \"note\": \"short\"}, ...]}" });
   const out = await claude({ tier: "smart", prompt: content, maxTokens: 1500 });
   const data = parseJSON(out.text);
   const map = {}; (data.scores || []).forEach(s => { map[parseInt(s.n, 10)] = { score: parseInt(s.score, 10) || 0, note: String(s.note || "") }; });
@@ -53,16 +55,21 @@ async function illustrate(spec, deadline) {
   (spec.pages || []).forEach(pg => { if (pg.template === "coloring") (pg.subjects || [pg]).forEach(sj => { if (!sj.art && (sj.subject || sj.title)) jobs.push(sj); }); });
   if (!jobs.length) return { drawn: 0, dropped: 0 };
   const audience = spec.category === "kids" ? "kids ages 3 to 8" : "all ages";
-  const attempt = async (list) => {
-    const drawn = await pool(list, 6, sj => Date.now() < deadline ? drawOne(sj.subject || sj.title, audience) : Promise.reject(new Error("out of time")));
+  // ChatGPT draws the pictures when its key is set (Claude draws them otherwise, and fills any gaps). Claude always judges.
+  const O = require("./_openai");
+  const attempt = async (list, useAI) => {
+    const draw = sj => useAI ? O.coloringArt(sj.subject || sj.title, audience) : drawOne(sj.subject || sj.title, audience);
+    const drawn = await pool(list, useAI ? 3 : 6, sj => Date.now() < deadline ? draw(sj) : Promise.reject(new Error("out of time")));
     const ok = list.map((sj, i) => ({ sj, subject: sj.subject || sj.title, art: drawn[i] && !drawn[i].error ? drawn[i] : null })).filter(x => x.art);
     const reviewed = [];
     for (let i = 0; i < ok.length; i += 8) { try { reviewed.push(...await review(ok.slice(i, i + 8))); } catch (e) { reviewed.push(...ok.slice(i, i + 8).map(x => Object.assign(x, { score: 0, note: "review failed" }))); } }
     reviewed.forEach(r => { if (r.score >= 7) r.sj.art = r.art; });
     return list.filter(sj => !sj.art);
   };
-  let left = await attempt(jobs);
-  if (left.length && Date.now() < deadline - 60000) left = await attempt(left);
+  const ai = O.configured();
+  let left = await attempt(jobs, ai);
+  if (left.length && Date.now() < deadline - 60000) left = await attempt(left, ai && left.length < jobs.length / 2);
+  if (left.length && ai && Date.now() < deadline - 60000) left = await attempt(left, false);
   // drop subjects that never got a good drawing
   (spec.pages || []).forEach(pg => { if (pg.template === "coloring" && pg.subjects) pg.subjects = pg.subjects.filter(sj => sj.art); });
   spec.pages = (spec.pages || []).filter(pg => pg.template !== "coloring" || (pg.subjects ? pg.subjects.length : pg.art));

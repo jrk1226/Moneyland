@@ -98,6 +98,18 @@ async function tuneSEO(max) {
   let n = 0;
   for (const p of slow) {
     const L = p.spec.listing || {};
+    if (L.altTitle && !L.altTried) {
+      try {
+        const { etsy, link } = require("./_etsy"); const l = await link();
+        const tags = (L.altTags || L.tags || []).slice(0, 13);
+        await etsy("/application/shops/" + l.shop_id + "/listings/" + p.etsy_listing_id, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ title: L.altTitle, tags: tags.join(",") }).toString() });
+        const spec = Object.assign({}, p.spec, { listing: Object.assign({}, L, { etsyTitle: L.altTitle, tags, altTitle: L.etsyTitle, altTags: L.tags, altTried: true }) });
+        await db("products?id=eq." + p.id, { method: "PATCH", body: { spec } });
+        await db("seo_changes", { method: "POST", prefer: "return=minimal", body: [{ product_id: p.id, old_title: L.etsyTitle, new_title: L.altTitle, old_tags: L.tags || [], new_tags: tags, views_before: p.etsy_views || 0, note: "Switched to the runner-up title from the title contest" }] });
+        await note("Search tuning: switched \"" + p.spec.title + "\" to the runner-up title from the title contest (only " + (p.etsy_views || 0) + " views in 2 weeks).");
+        n++; continue;
+      } catch (e) { /* fall through to a fresh rewrite */ }
+    }
     const prompt = "You are an Etsy SEO expert. This printable digital download listing has had only " + (p.etsy_views || 0) + " views in 2+ weeks. Use web search to see what buyers search for and how top listings for this kind of product are titled. Then improve the Etsy title and 13 tags so it matches real buyer searches.\n"
       + "Product: " + p.spec.title + " - " + (p.spec.subtitle || "") + "\nCurrent title: " + L.etsyTitle + "\nCurrent tags: " + (L.tags || []).join(", ")
       + "\nRules: title max 140 characters, front-load the main search phrase in the first 50 characters, natural wording, describe only what the product really contains; 13 tags, each max 20 characters, real search phrases, no repeats; no trademarks or brand names. Reply with only JSON: {\"title\": \"...\", \"tags\": [13 strings], \"why\": \"one sentence\"}";

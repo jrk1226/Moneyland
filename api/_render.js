@@ -23,7 +23,7 @@ function listingDesc(spec) {
   const L = spec.listing || {}, n = (spec.prints || []).length;
   return [clean(L.description || spec.subtitle || spec.title), "", "WHAT YOU GET", "- " + n + (n > 1 ? " prints" : " print") + " in 5 ratio files (ZIP folders of 300 DPI JPGs)",
     ...WA.RATIOS.map(r => "- " + r.label), "", "HOW IT WORKS", "1. Buy and download the files from your Etsy Purchases page.", "2. Print at home, at a local print shop or with an online printing service.", "3. Frame and enjoy.",
-    "", "PLEASE NOTE", "- This is a digital download. No physical print or frame will be shipped.", "- Colors can vary slightly between screens and printers.", "- For personal use only. Please do not resell or share the files."].join("\n");
+    "", "HOW IT IS MADE", "Designed by Bright Page Prints with the help of AI tools: Claude and ChatGPT help write, illustrate and lay out the pages and listing photos, and every product is checked before it is listed.", "", "PLEASE NOTE", "- This is a digital download. No physical print or frame will be shipped.", "- Colors can vary slightly between screens and printers.", "- For personal use only. Please do not resell or share the files."].join("\n");
 }
 // Page previews for the website.
 function previewList(spec) { return isArt(spec) ? (spec.prints || []).map((p, i) => ({ i, label: "Print " + (i + 1) })) : B.pageList(spec); }
