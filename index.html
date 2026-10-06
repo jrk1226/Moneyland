@@ -1320,7 +1320,7 @@ document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",(
 function ago(ts){ const m=Math.round((Date.now()-new Date(ts).getTime())/60000); return m<60?m+" min ago":m<1440?Math.round(m/60)+" hours ago":Math.round(m/1440)+" days ago"; }
 function renderLab(){
   const box=$("ideaList"); box.innerHTML="";
-  $("labRun").textContent= (LASTRUN ? "Last research: "+ago(LASTRUN.ran_at)+(LASTRUN.trigger==="manual"?" (you ran it)":" (automatic)")+". " : (MODE==="db"?"No research yet. ":""))+(MODE==="db"?"Juno researches automatically 4 times a day: about 1:40 AM, 7:40 AM, 1:40 PM and 7:40 PM.":"");
+  $("labRun").textContent= (LASTRUN ? "Last research: "+ago(LASTRUN.ran_at)+(LASTRUN.trigger==="manual"?" (you ran it)":" (automatic)")+". " : (MODE==="db"?"No research yet. ":""))+(MODE==="db"?"Juno researches automatically every hour, around the clock.":"");
   $("labSummary").textContent= LASTRUN&&LASTRUN.summary ? LASTRUN.summary : "";
   const list=IDEAS.filter(i=>i.status!=="passed").sort((a,b)=>(a.status==="new"?0:1)-(b.status==="new"?0:1)||(b.score||0)-(a.score||0)||b.id-a.id);
   $("sIdeas").textContent=list.filter(i=>i.status==="new").length;
