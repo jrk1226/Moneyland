@@ -236,7 +236,7 @@ td.n.c{color:var(--amber)}
 
   <section class="shop panel" id="shop">
     <div class="shophead">
-      <div><h2>Real shop</h2><p>Real printable products to sell on Etsy. Nothing goes live until you approve it.</p></div>
+      <div><h2>Real shop</h2><p>Real printables to sell on Etsy: kids, planners and trackers, party. Nothing goes live until you approve it.</p></div>
       <div class="vitals">
         <div class="vital"><small>Needs your OK</small><b id="sReview">0</b></div>
         <div class="vital"><small>Ready to list</small><b id="sReady">0</b></div>
@@ -773,83 +773,139 @@ $("btnPlan").addEventListener("click", async ()=>{
   finally{ btn.disabled=false; btn.textContent="Core: plan with AI"; }
 });
 
-/* ================= REAL SHOP: printable fire-safety products ================= */
-const PW=612, PH=792, M=42;
-const PC={red:"#C8102E", dark:"#1D2430", gray:"#5B6470", light:"#EEF1F5", line:"#C9D0DA", white:"#FFFFFF", yellow:"#F2C200", blue:"#1F4E9A", green:"#1B7F3B"};
-const DISCLAIMER="General guidance only. Always follow your local fire code, the authority having jurisdiction, and the equipment manufacturer's instructions.";
+/* ================= REAL SHOP: printable products (kids, planners & trackers, party) ================= */
+const PW=612, PH=792, M=40;
+const PC={dark:"#1F2533", gray:"#626B7A", light:"#F1F3F7", line:"#CDD3DD", white:"#FFFFFF", trace:"#C2C8D2"};
+const ACC={purple:"#7B4FD6", teal:"#0E9F9A", orange:"#F07F1C", pink:"#E0508F", blue:"#2F7DE1", green:"#2C9F55", yellow:"#F2B705", red:"#D83A3A", navy:"#23395B", sage:"#5F8C70"};
+const CATS={kids:"Kids", planner:"Planners & trackers", party:"Party & events"};
+const TPL_NAMES={chart:"Chart",reward:"Reward chart",math:"Math worksheet",tracing:"Tracing worksheet",table:"Tracker",planner:"Planner page",sign:"Sign"};
+const FOOT="For personal and classroom use. Print at home on US Letter paper.";
 const mctx=document.createElement("canvas").getContext("2d");
 function clean(t){ return String(t==null?"":t).replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x20-\x7E -ÿ]/g,""); }
 function tw(txt,size,bold){ mctx.font=(bold?"bold ":"")+size+"px Helvetica, Arial, sans-serif"; return mctx.measureText(txt).width; }
 function wrapT(txt,size,bold,maxW){ const words=clean(txt).split(/\s+/).filter(Boolean), out=[]; let cur="";
   words.forEach(w=>{ const t=cur?cur+" "+w:w; if(tw(t,size,bold)>maxW && cur){ out.push(cur); cur=w; } else cur=t; }); if(cur) out.push(cur); return out.length?out:[""]; }
+function tint(hex,t){ const n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255, f=v=>Math.round(v+(255-v)*t).toString(16).padStart(2,"0"); return "#"+f(r)+f(g)+f(b); }
+function rng(seedStr){ let h=1779033703^seedStr.length; for(let i=0;i<seedStr.length;i++){ h=Math.imul(h^seedStr.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
+  return ()=>{ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); h^=h>>>16; return (h>>>0)/4294967296; }; }
 
 function layout(spec){
-  const ops=[]; const R=(x,y,w,h,o)=>ops.push(Object.assign({t:"rect",x,y,w,h},o)); const T=(txt,x,y,s,o)=>ops.push(Object.assign({t:"text",txt:clean(txt),x,y,s},o));
-  const L=(x1,y1,x2,y2,c,w)=>ops.push({t:"line",x1,y1,x2,y2,c:c||PC.line,w:w||1}); const Cc=(x,y,r,o)=>ops.push(Object.assign({t:"circle",x,y,r},o));
-  const para=(txt,x,y,size,bold,maxW,color,lh)=>{ const ls=wrapT(txt,size,bold,maxW); ls.forEach((l,i)=>T(l,x,y+i*size*(lh||1.3),size,{b:bold,c:color})); return ls.length*size*(lh||1.3); };
-  const footer=()=>{ L(M,752,PW-M,752,PC.line,0.8); para(DISCLAIMER,M,765,7.5,false,PW-2*M,PC.gray,1.25); };
-  const tpl=spec.template;
-  if(tpl==="poster"){
-    R(0,0,PW,150,{f:PC.red});
-    let ts=34; let tl=wrapT(spec.title,ts,true,PW-2*M); while(tl.length>2 && ts>22){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M); }
-    if(tl.length===2 && tl[1].split(" ").length<3){ for(let w=PW-2*M-20; w>260; w-=20){ const t2=wrapT(spec.title,ts,true,w); if(t2.length>2) break; tl=t2; } }
-    tl.forEach((l,i)=>T(l,M,58+i*ts*1.08,ts,{b:true,c:PC.white}));
-    para(spec.subtitle||"",M,58+tl.length*ts*1.08+8,13,false,PW-2*M,PC.white);
-    const steps=(spec.steps||[]).slice(0,6); let sc=1.45, total;
-    const measure=k=>steps.reduce((a,s)=>a+Math.max(36*k, (15*k*1.3)+wrapT(s.text,11.5*k,false,PW-2*M-56).length*11.5*k*1.35)+18*k,0);
-    while((total=measure(sc))>500 && sc>0.7) sc-=0.03;
-    let y=182; const gap=Math.max(0,(570-total)/Math.max(1,steps.length));
-    steps.forEach((s,i)=>{ Cc(M+18,y+10,18,{f:PC.red}); T(String(i+1),M+18,y+16,17,{b:true,c:PC.white,a:"center"});
-      T(s.head,M+48,y+8,15*sc,{b:true,c:PC.dark}); const h=para(s.text,M+48,y+8+15*sc*1.3,11.5*sc,false,PW-2*M-56,PC.dark,1.35);
-      y+=Math.max(36*sc,15*sc*1.3+h)+18*sc+gap; });
-    if(spec.footer) { R(M,712,PW-2*M,30,{f:PC.light}); T(spec.footer,PW/2,731,11,{b:true,c:PC.dark,a:"center"}); }
-    footer();
-  } else if(tpl==="checklist"){
-    const top=()=>{ T(spec.title,M,70,24,{b:true,c:PC.dark}); para(spec.subtitle||"",M,92,10.5,false,PW-2*M,PC.gray); R(M,106,90,3,{f:PC.red});
-      T("Date: ______________    Shift: __________    Completed by: ______________________",M,130,10,{c:PC.dark}); };
-    const secs=(spec.sections||[]).slice(0,5); let k=1.5;
-    const meas=k=>secs.reduce((a,s)=>a+34*k+10+s.items.slice(0,9).reduce((b,it)=>b+wrapT(it,10.5*k,false,PW-2*M-26).length*10.5*k*1.3+6*k,0)+8,0);
-    while(meas(k)>540 && k>0.72) k-=0.03;
-    top(); let y=150;
-    const extra=Math.max(0,(560-meas(k))/Math.max(1,secs.length));
-    secs.forEach(s=>{ R(M,y,PW-2*M,20*k+2,{f:PC.dark}); T(s.head.toUpperCase(),M+8,y+14.5*k,10.5*k,{b:true,c:PC.white}); y+=22*k+12*k+4;
-      s.items.slice(0,9).forEach(it=>{ R(M+2,y-8.5*k,10*k,10*k,{s:PC.dark,lw:1.2}); const h=para(it,M+16+10*k,y,10.5*k,false,PW-2*M-26-10*k,PC.dark,1.3); y+=h+6*k; }); y+=6+extra; });
-    T("Manager sign-off: ______________________________     Time: __________",M,735,10,{c:PC.dark});
-    footer();
-  } else if(tpl==="log"){
-    T(spec.title,M,68,22,{b:true,c:PC.dark}); para(spec.subtitle||"",M,88,10,false,PW-2*M,PC.gray); R(M,100,90,3,{f:PC.red});
-    T("Location: ______________________    Unit / ID: ______________    Year: ________",M,124,10,{c:PC.dark});
-    let cols=(spec.columns||[]).map(clean).filter(Boolean).slice(0,8); if(!/date/i.test(cols[0]||"")) cols.unshift("Date"); if(!/initial/i.test(cols[cols.length-1]||"")) cols.push("Initials");
-    const tw0=PW-2*M, fixed={0:64}; fixed[cols.length-1]=58; const rest=(tw0-64-58)/Math.max(1,cols.length-2);
-    const widths=cols.map((c,i)=>fixed[i]||rest); let x=M, y=140; const hh=34;
-    R(M,y,tw0,hh,{f:PC.dark});
-    cols.forEach((c,i)=>{ const ls=wrapT(c,8,true,widths[i]-8).slice(0,3); ls.forEach((l,j)=>T(l,x+widths[i]/2,y+12+j*9.5-(ls.length-1)*4.5+4,8,{b:true,c:PC.white,a:"center"})); x+=widths[i]; });
-    y+=hh; const rows=Math.max(8,Math.min(14,spec.rows||12)), rh=Math.min(42,(590-hh-(spec.notes||[]).length*26)/rows);
-    for(let r=0;r<rows;r++){ if(r%2) R(M,y,tw0,rh,{f:PC.light}); L(M,y+rh,M+tw0,y+rh,PC.line,0.6); y+=rh; }
-    x=M; cols.forEach((c,i)=>{ L(x,140,x,y,PC.line,0.6); x+=widths[i]; }); L(M+tw0,140,M+tw0,y,PC.line,0.6); R(M,140,tw0,y-140,{s:PC.dark,lw:1});
-    y+=22; (spec.notes||[]).slice(0,5).forEach(n=>{ T("-",M,y,9,{c:PC.red,b:true}); y+=para(n,M+10,y,9,false,tw0-10,PC.dark,1.3)+4; });
-    footer();
-  } else { // sign
-    const acc=PC[spec.accent]||PC.red, onAcc=spec.accent==="yellow"?PC.dark:PC.white;
-    R(14,14,PW-28,PH-28,{s:acc,lw:10});
-    R(14,14,PW-28,300,{f:acc});
-    let ts=88; let tl=wrapT(spec.title,ts,true,PW-90); while((tl.length>3 || tl.some(l=>tw(l,ts,true)>PW-90)) && ts>30){ ts-=4; tl=wrapT(spec.title,ts,true,PW-90); }
-    const blockH=tl.length*ts*1.02; tl.forEach((l,i)=>T(l,PW/2,164-blockH/2+ts*0.8+i*ts*1.02,ts,{b:true,c:onAcc,a:"center"}));
-    const sub=wrapT(spec.subtitle||"",30,true,PW-110), lns=(spec.lines||[]).slice(0,4).map(ln=>wrapT(ln,20,false,PW-120));
-    const bh=sub.length*40+30+lns.reduce((a,l)=>a+l.length*28+16,0); let y=314+(420-bh)/2+30;
-    sub.forEach(l=>{ T(l,PW/2,y,30,{b:true,c:PC.dark,a:"center"}); y+=40; }); R(PW/2-40,y-14,80,4,{f:acc}); y+=30;
-    lns.forEach(ls=>{ ls.forEach(l=>{ T(l,PW/2,y,20,{c:PC.dark,a:"center"}); y+=28; }); y+=16; });
-    para(DISCLAIMER,M,748,7.5,false,PW-2*M,PC.gray,1.25);
+  const ops=[]; const acc=ACC[spec.accent]||ACC.purple, soft=tint(acc,.85), mid=tint(acc,.55);
+  const R=(x,y,w,h,o)=>ops.push(Object.assign({t:"rect",x,y,w,h},o)); const T=(txt,x,y,s,o)=>ops.push(Object.assign({t:"text",txt:clean(txt),x,y,s},o));
+  const L=(x1,y1,x2,y2,c,w,dash)=>ops.push({t:"line",x1,y1,x2,y2,c:c||PC.line,w:w||1,dash}); const Cc=(x,y,r,o)=>ops.push(Object.assign({t:"circle",x,y,r},o));
+  const para=(txt,x,y,size,bold,maxW,color,lh,a)=>{ const ls=wrapT(txt,size,bold,maxW); ls.forEach((l,i)=>T(l,x,y+i*size*(lh||1.3),size,{b:bold,c:color,a})); return ls.length*size*(lh||1.3); };
+  const kids=spec.category==="kids";
+  function header(){
+    if(kids || spec.template==="sign"){
+      R(M,34,PW-2*M,92,{f:acc,r:18});
+      [[PW-M-26,52,9],[PW-M-56,104,6],[PW-M-90,60,4],[PW-M-110,112,5],[PW-M-130,80,3]].forEach(([x,y,r])=>Cc(x,y,r,{f:mid}));
+      let ts=30, tl=wrapT(spec.title,ts,true,PW-2*M-150); while(tl.length>1&&ts>24){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M-150); } while(tl.length>2&&ts>16){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M-150); }
+      const sub=spec.subtitle?1:0, capH=ts*0.72, blockH=capH+(tl.length-1)*ts*1.05+(sub?20:0); let y=34+(92-blockH)/2+capH;
+      tl.forEach((l,i)=>{ T(l,M+22,y+i*ts*1.05,ts,{b:true,c:PC.white}); }); if(sub) T(wrapT(spec.subtitle,11.5,false,PW-2*M-160)[0],M+22,y+(tl.length-1)*ts*1.05+20,11.5,{c:PC.white});
+      return 150;
+    }
+    let ts=26, tl=wrapT(spec.title,ts,true,PW-2*M); while(tl.length>2&&ts>18){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M); }
+    let y=66; tl.forEach(l=>{ T(l,M,y,ts,{b:true,c:PC.dark}); y+=ts*1.1; });
+    if(spec.subtitle) y+=para(spec.subtitle,M,y,10.5,false,PW-2*M,PC.gray)-4;
+    R(M,y,90,4,{f:acc,r:2}); return y+24;
   }
-  return ops;
+  const foot=()=>{ T(FOOT,PW/2,770,7.5,{c:PC.gray,a:"center"}); };
+  const fields=(y,txt)=>{ if(!txt) return y; T(txt,M,y,10.5,{c:PC.dark}); return y+22; };
+  const tpl=spec.template;
+  let y=header();
+
+  if(tpl==="chart"){
+    y=fields(y,spec.fields||"Name: ______________________     Week of: ______________");
+    const cols=(spec.columns&&spec.columns.length?spec.columns:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]).map(clean).slice(0,8), rows=(spec.rows||[]).map(clean).slice(0,12);
+    const first=190, cw=(PW-2*M-first)/cols.length, hh=30, bottom=spec.footer?700:735, rh=Math.min(50,(bottom-y-hh)/Math.max(1,rows.length));
+    R(M,y,PW-2*M,hh,{f:acc,r:8}); T(spec.rowHead||"Task",M+12,y+19,11,{b:true,c:PC.white});
+    cols.forEach((c,i)=>T(c,M+first+cw*i+cw/2,y+19,10.5,{b:true,c:PC.white,a:"center"})); y+=hh+4;
+    rows.forEach((r,i)=>{ if(i%2===0) R(M,y,PW-2*M,rh-4,{f:soft,r:8});
+      const ls=wrapT(r,11.5,true,first-20).slice(0,2); ls.forEach((l,j)=>T(l,M+12,y+(rh-4)/2+4-(ls.length-1)*7+j*14,11.5,{b:true,c:PC.dark}));
+      const bs=Math.min(22,rh-14); cols.forEach((c,k)=>R(M+first+cw*k+cw/2-bs/2,y+(rh-4)/2-bs/2,bs,bs,{s:acc,lw:1.4,r:5,f:PC.white})); y+=rh; });
+    if(spec.footer){ R(M,712,PW-2*M,34,{f:soft,r:10}); T(spec.footer,PW/2,733,12,{b:true,c:PC.dark,a:"center"}); }
+  }
+  else if(tpl==="reward"){
+    y=fields(y,spec.fields||"Name: ______________________     Started: ______________");
+    if(spec.goal){ y+=6; T("My goal:",M,y,12,{b:true,c:acc}); y+=para(spec.goal,M+62,y,13,true,PW-2*M-62,PC.dark)+10; }
+    const n=[10,15,20,25,30].includes(+spec.spots)?+spec.spots:20, per=5, rowsN=Math.ceil(n/per);
+    const area=650-y, cell=Math.min((PW-2*M)/per, area/rowsN), r=cell*0.38; const gx=(PW-2*M-cell*per)/2;
+    for(let i=0;i<n;i++){ const cx=M+gx+cell*(i%per)+cell/2, cy=y+cell*Math.floor(i/per)+cell/2;
+      Cc(cx,cy,r,{f:i%2?PC.white:soft,s:acc,lw:2}); T(String(i+1),cx,cy+5,13,{b:true,c:mid,a:"center"}); }
+    R(M,670,PW-2*M,64,{s:acc,lw:2,r:14}); T(spec.prizeLabel||"When I fill every circle, I earn:",M+18,692,12,{b:true,c:acc}); L(M+18,722,PW-M-18,722,PC.line,1);
+  }
+  else if(tpl==="math"){
+    y=fields(y,"Name: ______________________     Date: ______________     Score: _____ / "+(spec.count||20));
+    const op=["+","-","x"].includes(spec.op)?spec.op:"+", lo=Math.max(0,parseInt(spec.min)||0), hi=Math.max(lo+1,Math.min(999,parseInt(spec.max)||10));
+    const count=[12,16,20,24,25,30].includes(+spec.count)?+spec.count:20, r=rng(clean(spec.title)+op+lo+hi+count), probs=[];
+    const ri=()=>lo+Math.floor(r()*(hi-lo+1));
+    for(let i=0;i<count;i++){ let a=ri(), b=ri(); if(op==="-"&&b>a){ const t=a; a=b; b=t; } probs.push([a,b,op==="+"?a+b:op==="-"?a-b:a*b]); }
+    const per=count%5===0?5:4, rows=Math.ceil(count/per), cw=(PW-2*M)/per;
+    const grid=(top,ch,showAns,size)=>probs.forEach(([a,b,ans],i)=>{ const cx=M+cw*(i%per)+cw/2+18, yy=top+ch*Math.floor(i/per);
+      T("("+(i+1)+")",cx-cw/2+4,yy+size*0.2,8.5,{c:PC.gray});
+      T(String(a),cx,yy+size,size,{b:true,c:PC.dark,a:"right"}); T((op==="x"?"x":op)+"  "+b,cx,yy+size*2.2,size,{b:true,c:PC.dark,a:"right"});
+      L(cx-size*2.6,yy+size*2.6,cx+2,yy+size*2.6,PC.dark,1.6); if(showAns) T(String(ans),cx,yy+size*3.8,size,{b:true,c:acc,a:"right"}); });
+    const ch=Math.min(130,(735-y)/rows); grid(y+6,ch,false,Math.min(22,ch/4.8));
+    foot(); ops.push({t:"page"});
+    T("Answer key: "+clean(spec.title),M,60,16,{b:true,c:PC.dark}); R(M,72,90,4,{f:acc,r:2});
+    grid(96,Math.min(110,630/rows),true,Math.min(18,(630/rows)/4.6));
+  }
+  else if(tpl==="tracing"){
+    y=fields(y,"Name: ______________________     Date: ______________");
+    const words=(spec.words||[]).map(clean).filter(Boolean).slice(0,6), blocks=Math.max(1,words.length), bh=(745-y)/blocks, gh=Math.min(44,(bh-14)/2-6);
+    words.forEach((w,i)=>{ let by=y+i*bh;
+      for(let k=0;k<2;k++){ const top=by+4+k*(gh+12), base=top+gh;
+        L(M,top,PW-M,top,mid,1); L(M,top+gh/2,PW-M,top+gh/2,mid,0.8,[4,4]); L(M,base,PW-M,base,PC.dark,1.2);
+        if(k===0){ const size=gh/0.72; let x=M+6; const ww=tw(w,size,false)+size*0.8; let n=0; while(x+tw(w,size,false)<PW-M && n<6){ T(w,x,base-1,size,{c:PC.trace}); x+=ww; n++; } } } });
+  }
+  else if(tpl==="table"){
+    y=fields(y,spec.fields||"");
+    let cols=(spec.columns||[]).map(clean).filter(Boolean).slice(0,7); if(!cols.length) cols=["Date","Item","Amount"];
+    const wts=cols.map(c=>/note|description|item|detail|book|title|exercise|meal|activity/i.test(c)?2.2:1), sum=wts.reduce((a,b)=>a+b,0), widths=wts.map(w=>w/sum*(PW-2*M));
+    const hh=30, notes=(spec.notes||[]).slice(0,3), rows=Math.max(8,Math.min(24,spec.rows||16)), bottom=740-notes.length*20, rh=Math.min(34,(bottom-y-hh)/rows);
+    R(M,y,PW-2*M,hh,{f:acc,r:8}); let x=M; cols.forEach((c,i)=>{ T(wrapT(c,9.5,true,widths[i]-8)[0],x+widths[i]/2,y+19,9.5,{b:true,c:PC.white,a:"center"}); x+=widths[i]; });
+    y+=hh; const top=y;
+    for(let r2=0;r2<rows;r2++){ if(r2%2) R(M,y,PW-2*M,rh,{f:soft}); L(M,y+rh,PW-M,y+rh,PC.line,0.6);
+      if(spec.totalRow && r2===rows-1) T("Total",M+8,y+rh/2+4,10,{b:true,c:PC.dark}); y+=rh; }
+    x=M; widths.slice(0,-1).forEach(w=>{ x+=w; L(x,top,x,y,PC.line,0.6); });
+    y+=18; notes.forEach(n=>{ T("-",M,y,9.5,{b:true,c:acc}); y+=para(n,M+10,y,9.5,false,PW-2*M-10,PC.dark)+5; });
+  }
+  else if(tpl==="planner"){
+    y=fields(y,spec.fields||"Date: ______________________");
+    const secs=(spec.sections||[]).slice(0,8).map(s=>({head:clean(s.head),kind:["lines","checks","hours"].includes(s.kind)?s.kind:"lines",count:Math.max(2,Math.min(16,parseInt(s.count)||5)),wide:!!s.wide}));
+    const rowsL=[]; for(let i=0;i<secs.length;i++){ const s=secs[i]; if(s.wide||i===secs.length-1||secs[i+1].wide) rowsL.push([s]); else { rowsL.push([s,secs[i+1]]); i++; } }
+    const units=rowsL.reduce((a,r)=>a+Math.max(...r.map(s=>s.count)),0), lh=Math.max(14,Math.min(26,(740-y-rowsL.length*44)/units));
+    const hour0=Math.max(5,Math.min(9,parseInt(spec.startHour)||6));
+    rowsL.forEach(row=>{ const n=Math.max(...row.map(s=>s.count)), bh=34+n*lh, w=row.length===2?(PW-2*M-12)/2:PW-2*M;
+      row.forEach((s,j)=>{ const bx=M+j*(w+12); R(bx,y,w,bh,{s:mid,lw:1.2,r:12}); R(bx,y,w,26,{f:soft,r:12}); R(bx,y+14,w,12,{f:soft}); T(s.head,bx+12,y+17,11,{b:true,c:acc});
+        for(let k=0;k<s.count;k++){ const ly=y+30+(k+1)*lh;
+          if(s.kind==="checks"){ R(bx+12,ly-lh*0.55-5,10,10,{s:acc,lw:1.1,r:2}); L(bx+28,ly,bx+w-12,ly,PC.line,0.7); }
+          else if(s.kind==="hours"){ const h=hour0+k, lab=(h%12||12)+(h<12?" AM":" PM"); T(lab,bx+12,ly-4,8.5,{b:true,c:PC.gray}); L(bx+52,ly,bx+w-12,ly,PC.line,0.7); }
+          else L(bx+12,ly,bx+w-12,ly,PC.line,0.7); } });
+      y+=bh+10; });
+  }
+  else { // sign (party and events)
+    const onAcc=spec.accent==="yellow"?PC.dark:PC.white;
+    R(20,20,PW-40,PH-40,{s:acc,lw:8,r:24}); R(20,20,PW-40,320,{f:acc,r:24}); R(20,300,PW-40,40,{f:acc});
+    [[70,70,14],[540,90,10],[110,290,8],[500,280,16],[300,60,6],[440,60,5],[170,90,5]].forEach(([x,yy,r])=>Cc(x,yy,r,{f:mid}));
+    let ts=86, tl=wrapT(spec.title,ts,true,PW-110); while((tl.length>3||tl.some(l=>tw(l,ts,true)>PW-110))&&ts>30){ ts-=4; tl=wrapT(spec.title,ts,true,PW-110); }
+    const bH=tl.length*ts*1.02; tl.forEach((l,i)=>T(l,PW/2,180-bH/2+ts*0.78+i*ts*1.02,ts,{b:true,c:onAcc,a:"center"}));
+    let ss=30; while(tw(clean(spec.subtitle||""),ss,true)>PW-120 && ss>18) ss-=2; const sub=wrapT(spec.subtitle||"",ss,true,PW-120), lns=(spec.lines||[]).slice(0,4).map(ln=>wrapT(ln,20,false,PW-130));
+    const bh=sub.length*40+30+lns.reduce((a,l)=>a+l.length*28+16,0); let yy=340+(390-bh)/2+30;
+    sub.forEach(l=>{ T(l,PW/2,yy,30,{b:true,c:PC.dark,a:"center"}); yy+=40; }); R(PW/2-40,yy-14,80,5,{f:acc,r:2}); yy+=30;
+    lns.forEach(ls=>{ ls.forEach(l=>{ T(l,PW/2,yy,20,{c:PC.dark,a:"center"}); yy+=28; }); yy+=16; });
+    return ops;
+  }
+  foot(); return ops;
 }
+function pagesOf(ops){ const pages=[[]]; ops.forEach(o=>{ if(o.t==="page") pages.push([]); else pages[pages.length-1].push(o); }); return pages; }
 function toSVG(ops){
   const esc2=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
   let o='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+PW+' '+PH+'" style="background:#fff;display:block;width:100%;height:auto"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
-  ops.forEach(p=>{
-    if(p.t==="rect") o+='<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
-    if(p.t==="circle") o+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+p.r+'" fill="'+(p.f||"none")+'"/>';
-    if(p.t==="line") o+='<line x1="'+p.x1+'" y1="'+p.y1+'" x2="'+p.x2+'" y2="'+p.y2+'" stroke="'+p.c+'" stroke-width="'+p.w+'"/>';
+  pagesOf(ops)[0].forEach(p=>{
+    if(p.t==="rect") o+='<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" rx="'+(p.r||0)+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
+    if(p.t==="circle") o+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+p.r+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
+    if(p.t==="line") o+='<line x1="'+p.x1+'" y1="'+p.y1+'" x2="'+p.x2+'" y2="'+p.y2+'" stroke="'+p.c+'" stroke-width="'+p.w+'"'+(p.dash?' stroke-dasharray="'+p.dash.join(" ")+'"':'')+'/>';
     if(p.t==="text") o+='<text x="'+p.x+'" y="'+p.y+'" font-family="Helvetica, Arial, sans-serif" font-size="'+p.s+'" font-weight="'+(p.b?"bold":"normal")+'" fill="'+(p.c||"#000")+'" text-anchor="'+(p.a==="center"?"middle":p.a==="right"?"end":"start")+'">'+esc2(p.txt)+'</text>';
   });
   return o+'</svg>';
@@ -857,50 +913,47 @@ function toSVG(ops){
 function toPDF(ops){
   const J=window.jspdf && window.jspdf.jsPDF; if(!J) throw new Error("PDF library did not load");
   const d=new J({unit:"pt",format:"letter"});
-  ops.forEach(p=>{
-    if(p.t==="rect"){ const st=(p.f?"F":"")+(p.s?"D":""); if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); } if(st) d.rect(p.x,p.y,p.w,p.h,st); }
-    if(p.t==="circle"){ d.setFillColor(p.f); d.circle(p.x,p.y,p.r,"F"); }
-    if(p.t==="line"){ d.setDrawColor(p.c); d.setLineWidth(p.w); d.line(p.x1,p.y1,p.x2,p.y2); }
-    if(p.t==="text"){ d.setFont("helvetica",p.b?"bold":"normal"); d.setFontSize(p.s); d.setTextColor(p.c||"#000000"); d.text(p.txt,p.x,p.y,{align:p.a||"left"}); }
-  });
+  pagesOf(ops).forEach((page,pi)=>{ if(pi) d.addPage("letter");
+    page.forEach(p=>{
+      if(p.t==="rect"){ const st=(p.f?"F":"")+(p.s?"D":""); if(!st) return; if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); }
+        if(p.r) d.roundedRect(p.x,p.y,p.w,p.h,p.r,p.r,st); else d.rect(p.x,p.y,p.w,p.h,st); }
+      if(p.t==="circle"){ const st=(p.f?"F":"")+(p.s?"D":""); if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); } d.circle(p.x,p.y,p.r,st); }
+      if(p.t==="line"){ d.setDrawColor(p.c); d.setLineWidth(p.w); d.setLineDashPattern(p.dash||[],0); d.line(p.x1,p.y1,p.x2,p.y2); d.setLineDashPattern([],0); }
+      if(p.t==="text"){ d.setFont("helvetica",p.b?"bold":"normal"); d.setFontSize(p.s); d.setTextColor(p.c||"#000000"); d.text(p.txt,p.x,p.y,{align:p.a||"left"}); }
+    }); });
   return d.output("blob");
 }
 
 /* ---------- shop state ---------- */
-const SHOPKEY="moneyland-shop";
-const TPL_NAMES={poster:"Wall poster",checklist:"Checklist",log:"Inspection log",sign:"Sign"};
+const SHOPKEY="moneyland-shop-v2";
 function seedProducts(){ return [
- {template:"log", title:"Monthly Fire Extinguisher Inspection Log", subtitle:"Check each portable extinguisher once a month. Record the result and initial each line.",
-  columns:["Date","In place and visible","Not blocked","Pin and seal intact","Gauge in green","No damage or leaks","Tag current","Initials"], rows:12,
-  notes:["If any box fails, take the extinguisher out of service and call your fire protection company.","Monthly checks do not replace annual maintenance by a licensed technician.","Keep this log with your fire safety records."],
-  listing:{etsyTitle:"Monthly Fire Extinguisher Inspection Log, Printable PDF, Restaurant Office Shop Safety Checklist, Business Fire Safety Record",
-   tags:["fire extinguisher","inspection log","fire safety","printable log","restaurant safety","business checklist","safety record","monthly checklist","office safety","shop safety","landlord printable","property manager","pdf printable"], price:4.5}},
- {template:"poster", title:"Kitchen Grease Fire: What To Do", subtitle:"Stay calm. Act fast. Get everyone out safely.",
-  steps:[{head:"Never use water",text:"Water on burning oil causes a violent flare-up that can spread the fire across the kitchen."},
-   {head:"Shut off the heat",text:"If it is safe to reach, turn off the burner, fryer or gas supply to the cooking line."},
-   {head:"Pull the hood system",text:"Activate the kitchen hood suppression system with the manual pull station."},
-   {head:"Use the K-class extinguisher",text:"After the hood system has discharged, use the K-class extinguisher on any remaining fire."},
-   {head:"Get out and call 911",text:"If the fire is not out right away, evacuate everyone and call 911 from outside."}],
-  footer:"Know where your pull station and K-class extinguisher are before you need them.",
-  listing:{etsyTitle:"Kitchen Grease Fire Safety Poster, Printable Restaurant Wall Sign, Commercial Kitchen Fire Steps, Staff Training Poster PDF",
-   tags:["kitchen safety","grease fire","fire safety poster","restaurant poster","kitchen sign","staff training","commercial kitchen","safety printable","food truck","chef gift","workplace safety","pdf poster","restaurant decor"], price:5}},
- {template:"checklist", title:"Restaurant Closing Fire Safety Checklist", subtitle:"Complete at the end of every shift before the last person leaves.",
-  sections:[{head:"Cooking line",items:["All burners, ovens, fryers and griddles turned off","Fryer oil covered and cooling","Hood filters in place and not heavily greased","Grease drip trays emptied"]},
-   {head:"Fire protection",items:["Hood suppression nozzle caps in place","Manual pull station visible and not blocked","K-class extinguisher in its spot, pin and seal intact","ABC extinguishers in place and unobstructed"]},
-   {head:"Building",items:["Exit doors and paths clear","Trash and greasy rags removed from the kitchen","Electrical cords and outlets undamaged","Back door locked and alarm set"]}],
-  listing:{etsyTitle:"Restaurant Closing Fire Safety Checklist, Printable Kitchen Closing Duties PDF, Bar Cafe Food Truck End of Shift Checklist",
-   tags:["closing checklist","restaurant","fire safety","kitchen checklist","end of shift","bar checklist","cafe printable","food truck","staff duties","commercial kitchen","safety printable","manager tools","pdf checklist"], price:4}},
- {template:"sign", title:"K-Class Extinguisher", subtitle:"For cooking oil and grease fires", accent:"red",
-  lines:["Activate the hood suppression system first.","Then use this extinguisher on any remaining fire.","Do not use water on a grease fire."],
-  listing:{etsyTitle:"K-Class Fire Extinguisher Sign, Printable Commercial Kitchen Safety Sign, Restaurant Grease Fire Label PDF",
-   tags:["k class","extinguisher sign","kitchen sign","fire safety sign","restaurant sign","grease fire","commercial kitchen","safety label","printable sign","food truck","chef","workplace safety","pdf sign"], price:3}},
+ {category:"kids", template:"reward", accent:"purple", title:"Sticker Reward Chart", subtitle:"Fill a circle every time you reach your goal!", spots:20, goal:"______________________________",
+  listing:{etsyTitle:"Sticker Reward Chart for Kids, Printable Behavior Chart, Potty Training Chart, Chore Reward Chart, Instant Download PDF",
+   tags:["reward chart","sticker chart","behavior chart","kids printable","potty training","chore chart","toddler chart","incentive chart","classroom reward","parenting","kids goals","printable pdf","sticker reward"], price:3.5}},
+ {category:"kids", template:"math", accent:"teal", title:"Addition Practice: Sums to 20", subtitle:"Solve each problem. Check your work!", op:"+", min:0, max:10, count:20,
+  listing:{etsyTitle:"Addition Worksheet Sums to 20, Printable First Grade Math Practice with Answer Key, Kindergarten Homeschool Math PDF",
+   tags:["addition worksheet","math worksheet","first grade math","kindergarten math","homeschool","math practice","answer key","printable math","teacher resource","math facts","kids worksheet","1st grade","pdf worksheet"], price:2.5}},
+ {category:"kids", template:"chart", accent:"orange", title:"My Morning Routine", subtitle:"Check off each step as you finish it.", rows:["Make my bed","Get dressed","Eat breakfast","Brush my teeth","Comb my hair","Pack my backpack","Shoes and coat on"], footer:"I did it! Stars this week: ______",
+  listing:{etsyTitle:"Morning Routine Chart for Kids, Printable Daily Checklist, Toddler Routine Chart, Kids Weekly Chore Chart PDF",
+   tags:["morning routine","routine chart","kids checklist","toddler routine","chore chart","daily routine","kids printable","visual schedule","parenting tool","weekly chart","school morning","printable pdf","kids responsibility"], price:3}},
+ {category:"planner", template:"chart", accent:"sage", title:"Weekly Habit Tracker", subtitle:"Track up to 10 habits. Small steps every day add up.", rowHead:"Habit", rows:["Drink 8 glasses of water","Move for 30 minutes","Read 10 pages","No phone after 10 PM","Eat a vegetable","Sleep 7+ hours","","",""], fields:"Week of: ______________________",
+  listing:{etsyTitle:"Weekly Habit Tracker Printable, Minimalist Habit Planner Page, Daily Goals Checklist, Self Care Tracker PDF Instant Download",
+   tags:["habit tracker","weekly planner","goal tracker","self care","printable planner","minimalist planner","daily habits","planner insert","productivity","wellness tracker","goal setting","pdf planner","new year goals"], price:3}},
+ {category:"planner", template:"table", accent:"navy", title:"Monthly Budget Tracker", subtitle:"Write down every expense. Know where your money goes.", fields:"Month: ______________     Income: $____________     Budget: $____________",
+  columns:["Date","Description","Category","Amount","Running total"], rows:20, totalRow:true, notes:["Review your categories at the end of the month and adjust next month's budget."],
+  listing:{etsyTitle:"Monthly Budget Tracker Printable, Expense Tracker Sheet, Spending Log, Personal Finance Planner Page PDF",
+   tags:["budget tracker","expense tracker","budget planner","spending log","finance planner","money tracker","monthly budget","printable budget","budget sheet","savings","bill tracker","pdf planner","personal finance"], price:3.5}},
+ {category:"party", template:"sign", accent:"pink", title:"Welcome to the Party", subtitle:"________________ is turning ____!", lines:["Grab a snack, find a seat","and let's celebrate!"],
+  listing:{etsyTitle:"Birthday Party Welcome Sign, Printable Kids Birthday Sign, Editable Name Party Decor, Instant Download PDF",
+   tags:["welcome sign","birthday sign","party sign","kids birthday","birthday decor","party printable","girl birthday","boy birthday","party decorations","celebration","birthday party","pdf sign","instant download"], price:3}},
 ];}
 function listingDesc(spec){
-  const what={poster:"a printable wall poster",checklist:"a printable checklist",log:"a printable inspection log",sign:"a printable sign"}[spec.template]||"a printable";
-  return clean(spec.title)+"\n\nThis is "+what+" for restaurants, commercial kitchens, offices and property managers. "+clean(spec.subtitle||"")+"\n\nWHAT YOU GET\n- 1 PDF file, US Letter size (8.5 x 11 in)\n- Instant digital download. Nothing is shipped.\n- Print at home, at the office or at any print shop. Prints well in color or black and white.\n\n"+DISCLAIMER+"\n\nThis design was created with the help of AI tools and reviewed by a fire protection professional before listing.";
+  const who={kids:"Made for kids at home or in the classroom.",planner:"A simple way to stay organized and on track.",party:"Perfect for birthdays, showers and celebrations."}[spec.category]||"";
+  const extra=spec.template==="math"?"\n- Includes a separate answer key page":"";
+  return clean(spec.title)+"\n\n"+who+" "+clean(spec.subtitle||"")+"\n\nWHAT YOU GET\n- 1 PDF file, US Letter size (8.5 x 11 in)"+extra+"\n- Instant digital download. Nothing is shipped.\n- Print as many copies as you need for personal or classroom use.\n\nHOW IT WORKS\n1. Buy and download the PDF from your Etsy purchases page.\n2. Print at home or at any print shop.\n\nThis design was created with the help of AI tools and checked by a person before listing.";
 }
 function loadShop(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
-  return {nextId:5, items:seedProducts().map((p,i)=>({id:i+1,status:"review",created:Date.now(),spec:p,price:p.listing.price,sales:0,starter:true}))}; }
+  const seeds=seedProducts(); return {nextId:seeds.length+1, items:seeds.map((p,i)=>({id:i+1,status:"review",created:Date.now(),spec:p,price:p.listing.price,sales:0,starter:true}))}; }
 let SHOP=loadShop();
 function saveShop(){ try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
 const thumbCache={};
@@ -912,7 +965,7 @@ function renderShopBoard(){
   Object.values(cols).forEach(c=>c.innerHTML="");
   SHOP.items.forEach(it=>{
     const c=document.createElement("button"); c.className="pcard"; c.type="button";
-    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+TPL_NAMES[it.spec.template]+' &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
+    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
     c.querySelector("b").textContent=clean(it.spec.title);
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
@@ -928,7 +981,7 @@ function openProduct(id){
   const L=it.spec.listing||{};
   $("pmPreview").innerHTML=svgFor(it);
   $("pmTitle").textContent=clean(it.spec.title);
-  $("pmStatus").textContent=({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
+  $("pmStatus").textContent=(CATS[it.spec.category]||"")+" · "+TPL_NAMES[it.spec.template]+" · "+({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
   $("pmEtsyTitle").value=clean(L.etsyTitle||it.spec.title).slice(0,140);
   $("pmDesc").value=listingDesc(it.spec);
   $("pmTags").value=(L.tags||[]).map(t=>clean(t).slice(0,20)).slice(0,13).join(", ");
@@ -953,10 +1006,10 @@ async function downloadPDF(){
 $("pmClose").addEventListener("click",closeProduct);
 $("pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") closeProduct(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("pmodal").hidden) closeProduct(); });
-$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and copy the listing text into Etsy."); log("Josh approved "+clean(it.spec.title)+" for Etsy","core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
+$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and copy the listing text into Etsy."); log("Approved for Etsy: "+clean(it.spec.title),"core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
 let rejArm=0;
 $("pmReject").addEventListener("click",()=>{ if(Date.now()-rejArm>3000){ rejArm=Date.now(); $("pmReject").textContent="Click again to delete"; setTimeout(()=>$("pmReject").textContent="Reject",3000); return; }
-  const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); saveShop(); log("Josh rejected "+clean(it.spec.title),"core"); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; });
+  const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); saveShop(); log("Rejected: "+clean(it.spec.title),"core"); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; });
 $("pmDownload").addEventListener("click",downloadPDF); $("pmDownload2").addEventListener("click",downloadPDF);
 $("pmListed").addEventListener("click",()=>{ setStatus("listed","Marked as live on Etsy. Add sales here as they come in."); log(clean(cur().spec.title)+" is live on Etsy","core"); });
 $("pmBack").addEventListener("click",()=>setStatus("approved","Moved back to ready to list."));
@@ -971,22 +1024,26 @@ $("btnMake").addEventListener("click", async ()=>{
   if(!sample){ $("makeNote").textContent="Making products needs AI. On the website, add your Claude API key in Vercel first."; return; }
   btn.disabled=true; btn.textContent="The Core is working..."; $("makeNote").textContent="Writing 3 new products. This can take up to a minute.";
   const have=SHOP.items.map(i=>clean(i.spec.title)).join("; ")||"none";
-  const prompt="You design printable fire-safety products sold as PDF digital downloads on Etsy to restaurant owners, commercial kitchens, offices, landlords and property managers in the United States. A fire protection professional will review every product before it is listed, but write it accurately: use widely accepted general fire-safety practice only, no code section numbers, no legal or certification claims, no brand names, plain words a busy restaurant worker understands. Avoid repeating these existing products: "+have+".\n\nCreate 3 NEW products, each a different template. Templates and their exact JSON shapes:\n"
-   +'poster: {"template":"poster","title":"max 45 chars","subtitle":"max 70 chars","steps":[{"head":"max 28 chars","text":"max 110 chars"}] (4-6 steps),"footer":"max 80 chars"}\n'
-   +'checklist: {"template":"checklist","title":"max 48 chars","subtitle":"max 90 chars","sections":[{"head":"max 24 chars","items":["max 70 chars"]}] (2-4 sections, 3-6 items each)}\n'
-   +'log: {"template":"log","title":"max 48 chars","subtitle":"max 100 chars","columns":["Date", "... 3-6 short check columns, max 22 chars each ...","Initials"],"rows":12,"notes":["max 110 chars"] (2-3 notes)}\n'
-   +'sign: {"template":"sign","title":"2-4 words","subtitle":"max 40 chars","accent":"red" or "yellow" or "blue" or "green","lines":["max 55 chars"] (1-3 lines)}\n'
-   +'Each product also needs "listing": {"etsyTitle":"keyword-rich Etsy title, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price": number between 3 and 8}.\n\nReply with only a JSON array of the 3 product objects. No emojis.';
+  const sold=SHOP.items.filter(i=>i.sales>0).sort((a,b)=>b.sales-a.sales).slice(0,5).map(i=>clean(i.spec.title)+" ("+i.sales+" sold)").join("; ")||"no sales yet";
+  const prompt="You design printable PDF products sold as instant digital downloads on Etsy in the United States. Categories: kids (parents and teachers), planner (planners and trackers for adults), party (party and event printables). Best sellers so far: "+sold+". Lean toward what sells, but keep variety. Do not repeat these existing products: "+have+".\n\nCreate 3 NEW products, one from each category. Use plain, friendly words. No brand names, characters or trademarks. Each product uses one template. Exact JSON shapes:\n"
+   +'chart (routine, chore or habit grids): {"category":"kids"|"planner","template":"chart","title":"max 40 chars","subtitle":"max 70 chars","rowHead":"Task or Habit or Chore","rows":["max 30 chars"] (5-10 rows),"columns":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] or other short labels (max 8),"footer":"max 60 chars or empty","fields":"e.g. Name: ______   Week of: ______"}\n'
+   +'reward: {"category":"kids","template":"reward","title":"max 36 chars","subtitle":"max 60 chars","spots":10|15|20|25|30,"goal":"max 60 chars or a blank line of underscores","prizeLabel":"max 45 chars"}\n'
+   +'math (problems are generated by code): {"category":"kids","template":"math","title":"max 40 chars","subtitle":"max 60 chars","op":"+"|"-"|"x","min":number,"max":number,"count":12|16|20|24|25|30}\n'
+   +'tracing (handwriting): {"category":"kids","template":"tracing","title":"max 40 chars","subtitle":"max 60 chars","words":["single words or letters, max 8 chars"] (4-6)}\n'
+   +'table (trackers and logs): {"category":"planner","template":"table","title":"max 40 chars","subtitle":"max 80 chars","fields":"max 90 chars of label: ______ blanks","columns":["max 18 chars"] (3-6),"rows":12-22,"totalRow":true|false,"notes":["max 100 chars"] (0-2)}\n'
+   +'planner (pages with boxes): {"category":"planner","template":"planner","title":"max 40 chars","subtitle":"max 70 chars","fields":"e.g. Date: ______","startHour":5-9,"sections":[{"head":"max 22 chars","kind":"lines"|"checks"|"hours","count":2-14,"wide":true|false}] (3-7 sections)}\n'
+   +'sign (party and events): {"category":"party","template":"sign","title":"2-5 words","subtitle":"max 40 chars, blanks like ______ allowed for names","lines":["max 50 chars"] (1-3)}\n'
+   +'Every product also has "accent": one of "purple","teal","orange","pink","blue","green","yellow","red","navy","sage", and "listing": {"etsyTitle":"keyword-rich Etsy title, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price": number between 2 and 6}.\n\nReply with only a JSON array of the 3 product objects. No emojis.';
   try{
     const arr=await sample.json(prompt,{cache:false});
     const list=(Array.isArray(arr)?arr:(arr&&arr.products)||[]).filter(p=>p&&TPL_NAMES[p.template]&&p.title);
     if(!list.length) throw {code:"invalid_json"};
-    list.slice(0,4).forEach(p=>{ p.listing=p.listing||{}; const price=Math.min(12,Math.max(2,Number(p.listing.price)||4));
-      SHOP.items.unshift({id:SHOP.nextId++,status:"review",created:Date.now(),spec:p,price,sales:0}); });
+    list.slice(0,4).forEach(p=>{ p.listing=p.listing||{}; if(!CATS[p.category]) p.category=["reward","math","tracing"].includes(p.template)?"kids":p.template==="sign"?"party":"planner";
+      const price=Math.min(10,Math.max(1.5,Number(p.listing.price)||3)); SHOP.items.unshift({id:SHOP.nextId++,status:"review",created:Date.now(),spec:p,price,sales:0}); });
     saveShop(); renderShopBoard();
     $("makeNote").textContent=list.length+" new product"+(list.length>1?"s are":" is")+" waiting for your OK.";
     log("Made "+list.length+" new real products for review","core"); say(CORE,list.length+" new products need your approval.",4000);
-    const d=V.find(v=>v.id==="mara"); if(d) say(d,"New printables ready for Josh to review.",3500);
+    const d=V.find(v=>v.id==="mara"); if(d) say(d,"New printables ready for review.",3500);
   }catch(e){ $("makeNote").textContent=errCopy(e.code); if(OFF_CODES.includes(e.code)) aiOff(e.code); }
   finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
 });
