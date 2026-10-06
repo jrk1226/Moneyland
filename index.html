@@ -154,6 +154,7 @@ td.n.c{color:var(--amber)}
       <div class="ai">
         <p id="aiNote">Residents run on their own. Ask the district AI to study the market and plan new products.</p>
         <button id="btnPlan" class="primary">Core: plan with AI</button>
+        <form id="codeForm" class="row" hidden style="flex:1 1 100%"><input type="password" id="codeInput" placeholder="Access code" autocomplete="off"><button type="submit">Unlock AI</button></form>
       </div>
     </section>
 
@@ -652,7 +653,7 @@ setInterval(()=>{ renderTop(); if(activeTab==="people"){ renderPeople(); renderC
 /* ---------- AI (Claude) ---------- */
 let sample=null; const chats={};
 const OFF_CODES=["not_granted","sampling_disabled","not_declared","capability_disabled"];
-function errCopy(code){ return ({not_granted:"AI is turned off for this page.",sampling_disabled:"AI isn't available on this account.",rate_limited:"Too many questions at once. Try again in a minute.",session_expired:"Sign in again to use AI.",refused:"The AI declined that one. Try asking differently.",invalid_json:"The plan came back garbled. Try again.",cancelled:""})[code] || "Something went wrong reaching the AI. Try again."; }
+function errCopy(code){ return ({not_granted:"AI is turned off for this page.",sampling_disabled:"AI isn't available on this account.",rate_limited:"Too many questions at once. Try again in a minute.",session_expired:"Sign in again to use AI.",refused:"The AI declined that one. Try asking differently.",invalid_json:"The plan came back garbled. Try again.",cancelled:"",needs_code:"Enter the access code below to use AI.",not_configured:"The AI key isn't set up on this site yet."})[code] || "Something went wrong reaching the AI. Try again."; }
 function aiOff(code){ $("btnPlan").hidden=true; $("talkForm").hidden=true;
   $("aiNote").textContent= code?errCopy(code):"Residents run on their own. AI planning and conversations work when this page is opened in Claude.";
   $("talkNote").textContent="Conversations need AI, which isn't available here."; }
@@ -704,7 +705,29 @@ if(!S.log.length) log("Moneyland comes online. Day 1 begins.","big");
 renderPeople(); renderTop(); renderShop(); renderLog();
 requestAnimationFrame(t=>{ last=t; frame(t); });
 if(document.fonts&&document.fonts.ready) document.fonts.ready.then(()=>{ for(const k in F) delete F[k]; });
-if(window.claude && window.claude.use){ window.claude.use("sample").then(s=>{ sample=s; if(!s) aiOff(); }).catch(()=>aiOff()); } else aiOff();
+/* Outside Claude (the live website), AI goes through the site's own /api/ai relay. */
+let accessCode=""; try{ accessCode=localStorage.getItem("moneyland-code")||""; }catch(e){}
+function showCode(){ $("codeForm").hidden=false; $("codeInput").focus(); }
+$("codeForm").addEventListener("submit",ev=>{ ev.preventDefault(); accessCode=$("codeInput").value.trim(); try{ localStorage.setItem("moneyland-code",accessCode); }catch(e){} $("codeForm").hidden=true; $("codeInput").value=""; $("aiNote").textContent="Code saved. Try the AI again."; });
+async function relay(input, opts){
+  const messages = typeof input==="string" ? [{role:"user",content:input}] : input;
+  let r, data;
+  try{ r=await fetch("/api/ai",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({mode:(opts&&opts.modelTier==="quick")?"chat":"plan",messages,code:accessCode})}); data=await r.json(); }
+  catch(e){ throw {code:"upstream_error",message:"network"}; }
+  if(!r.ok){ if(data&&data.code==="needs_code") showCode(); throw {code:(data&&data.code)||"upstream_error",message:(data&&data.error)||""}; }
+  if(opts&&opts.onText) opts.onText({text:data.text,delta:data.text});
+  return {text:data.text,truncated:!!data.truncated};
+}
+relay.json = async (input, opts)=>{
+  const {text}=await relay(input,opts);
+  const a=text.search(/[\[{]/), b=Math.max(text.lastIndexOf("}"),text.lastIndexOf("]"));
+  try{ return JSON.parse(text.slice(a,b+1)); }catch(e){ throw {code:"invalid_json",text}; }
+};
+async function tryRelay(){
+  try{ const r=await fetch("/api/ai"); const h=await r.json(); if(!h.configured){ aiOff("not_configured"); return; } sample=relay; if(h.needsCode && !accessCode) $("aiNote").textContent="AI is on. You'll be asked for the access code the first time you use it."; }
+  catch(e){ aiOff(); }
+}
+if(window.claude && window.claude.use){ window.claude.use("sample").then(s=>{ if(s) sample=s; else tryRelay(); }).catch(()=>tryRelay()); } else tryRelay();
 })();
 </script>
 
