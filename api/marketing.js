@@ -1,4 +1,4 @@
-// Marketing Room: brand kit images, Pinterest pins, shop announcement, and search tuning of slow listings.
+// Marketing Room: brand kit images, Pinterest pins, shop announcement, listing check-ups (category, attributes, sections) and search tuning of slow listings.
 // GET ?kind=asset&name=...  |  GET ?kind=pin&id=...  |  GET ?do=cron (Vercel cron)  |  GET ?do=pconnect
 // POST {action: status | run | shoptext.apply}
 const { cfg, codeOk, readBody, db, claudeJSON } = require("./_lib");
@@ -125,6 +125,7 @@ async function runJob(force) {
   try { done.pinsMade = await makePins(); if (done.pinsMade) await note("Made " + done.pinsMade + " new Pinterest pins for live products."); } catch (e) { done.pinsError = e.message; }
   try { done.pinterest = await postPins(5); } catch (e) { done.pinterest = e.message; }
   try { const t = await shopText(false); done.shopText = t ? (t.applied ? "updated" : "waiting for permission") : "current"; } catch (e) { done.shopText = e.message; }
+  try { done.checkups = await require("./_listingfix").runCheckups(3, note); } catch (e) { done.checkups = e.message; }
   try { done.seo = await tuneSEO(2); } catch (e) { done.seo = e.message; }
   return done;
 }
