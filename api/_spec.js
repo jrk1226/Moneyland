@@ -52,6 +52,9 @@ Party and events
 - certificate: {"template":"certificate","title":"Best Helper Award","kicker":"Certificate","body":"max 120 chars","signLabel":"max 30 chars"}
 Icon names you may use: ${ICONS}.
 
+WALL ART STYLES (what each one actually looks like; describe prints ONLY with these words, never promise objects that are not listed):
+arches = concentric rainbow arches with a small sun circle; sun = a big sun circle over layered wavy hills; cutouts = abstract organic blob shapes with a wavy line and a dot grid (no objects); mountains = layered mountain silhouettes with a sun; bauhaus = a grid of abstract geometric tiles (circles, quarter circles, triangles, squares) with no trees or objects; botanical = one or two leafy stems; waves = stacked wavy stripes; terrazzo = scattered colorful confetti chips; quote = a short quote in big type with a small dot and line; nursery = one cute flat animal (from the icon names) in a circle with an optional short caption; lineflower = one outlined daisy-like flower on a stem; stripes = a row of tall arched color bars.
+Seasonal wall art should come from the palette and the quote text (for example "Merry and Bright"), not from objects the styles cannot draw.
 WALL ART JSON (printable art, sold as 5 ratio files of 300 DPI JPGs):
 {"category":"wallart","palette":"${Object.keys(WA.PAL).join('"|"')}","title":"max 60 chars","subtitle":"max 90","prints":[{"style":"${WA.STYLES.join('"|"')}","seed":"any short word","text":"optional short quote, only for quote style or a short caption","font":"serif"|"script"|"sans","icon":"icon name, only for nursery"}] (1-6 prints; sets of 3-6 sell best, keep one palette per set),"listing":{...same as above}}
 
