@@ -41,6 +41,10 @@
     },
     "api/health.js": {
       "maxDuration": 120
+    },
+    "api/artworks.js": {
+      "maxDuration": 300,
+      "includeFiles": "{lib/design/fonts/*.ttf,node_modules/pdfkit/js/data/*.afm,node_modules/pdfkit/js/data/*.icc}"
     }
   },
   "crons": [
@@ -67,6 +71,10 @@
     {
       "path": "/api/health",
       "schedule": "3-59/15 * * * *"
+    },
+    {
+      "path": "/api/artworks",
+      "schedule": "2-59/10 * * * *"
     }
   ]
 }
