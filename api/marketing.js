@@ -63,18 +63,27 @@ async function postPins(max) {
   }
   return posted + " pins posted";
 }
+async function putShop(text) {
+  const { etsy, link } = require("./_etsy"); const l = await link();
+  await etsy("/application/shops/" + l.shop_id, { method: "PUT", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ title: text.title, announcement: text.announcement, digital_sale_message: text.digital_sale_message }).toString() });
+}
 async function shopText(force) {
   const st = (await db("settings?id=eq.1"))[0] || {};
   const cur = st.shop_text || {}, month = new Date().toISOString().slice(0, 7);
   if (!force && cur.month === month && cur.applied) return null;
+  // Already wrote this month's text but Etsy refused: just retry saving it (no new AI call, no repeat log line).
+  if (!force && cur.month === month && cur.title) {
+    try { await putShop(cur); cur.applied = true; delete cur.error; await note("Updated the shop headline, announcement and thank-you message on Etsy."); }
+    catch (e) { return cur; }
+    await db("settings?id=eq.1", { method: "PATCH", body: { shop_text: cur } }); return cur;
+  }
   const live = await db("products?select=spec->>title&etsy_state=eq.active&limit=30");
   const prompt = "Write the Etsy shop text for Bright Page Prints, a shop of printable instant downloads (kids activity books, planners, party printables, wall art). Today is " + new Date().toDateString() + ". Our products: " + live.map(r => r.title).join("; ") + ".\n"
     + "Return only JSON: {\"title\": \"shop headline, max 55 characters\", \"announcement\": \"shop announcement, 2-4 short friendly sentences, mention what is new or seasonal, max 500 characters\", \"digital_sale_message\": \"thank-you note buyers see after purchase, how to download from Etsy Purchases, print tips, invite a review, max 500 characters\"}. No emojis, no promises we cannot keep, no discounts unless told.";
   const t = (await claudeJSON({ tier: "smart", prompt, maxTokens: 1200 })).data;
   const text = { month, title: String(t.title || "").slice(0, 55), announcement: String(t.announcement || "").slice(0, 5000), digital_sale_message: String(t.digital_sale_message || "").slice(0, 5000), applied: false };
   try {
-    const { etsy, link } = require("./_etsy"); const l = await link();
-    await etsy("/application/shops/" + l.shop_id, { method: "PUT", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ title: text.title, announcement: text.announcement, digital_sale_message: text.digital_sale_message }).toString() });
+    await putShop(text);
     text.applied = true; await note("Updated the shop headline, announcement and thank-you message on Etsy.");
   } catch (e) { text.error = String(e.message).slice(0, 200); await note("Wrote new shop text, but Etsy needs one more permission to save it. Tap Reconnect Etsy in the Marketing Room. (" + text.error + ")"); }
   await db("settings?id=eq.1", { method: "PATCH", body: { shop_text: text } });
@@ -82,7 +91,8 @@ async function shopText(force) {
 }
 async function tuneSEO(max) {
   const cutoff = new Date(Date.now() - 14 * 86400000).toISOString();
-  const recent = await db("seo_changes?select=product_id,at&at=gte." + new Date(Date.now() - 21 * 86400000).toISOString());
+  const recent = (await db("seo_changes?select=product_id,at,new_title&at=gte." + new Date(Date.now() - 21 * 86400000).toISOString()))
+    .filter(r => r.new_title || Date.now() - new Date(r.at).getTime() < 86400000); // a failed try waits 1 day, a real change waits 3 weeks
   const slow = (await db("products?select=id,spec,etsy_listing_id,etsy_views,published_at&etsy_state=eq.active&published_at=lte." + cutoff + "&order=etsy_views.asc&limit=10"))
     .filter(p => (p.etsy_views || 0) < 25 && !recent.some(r => r.product_id === p.id)).slice(0, max);
   let n = 0;
@@ -94,7 +104,7 @@ async function tuneSEO(max) {
     try {
       const out = (await claudeJSON({ tier: "smart", prompt, maxTokens: 3000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 4 }] })).data;
       const title = String(out.title || "").slice(0, 140), tags = (out.tags || []).map(t => String(t).replace(/[^A-Za-z0-9 \-']/g, "").slice(0, 20).trim()).filter(Boolean).slice(0, 13);
-      if (title.length < 20 || tags.length < 8) continue;
+      if (title.length < 20 || tags.length < 8) throw new Error("the AI answer was too short");
       const { etsy, link } = require("./_etsy"); const l = await link();
       await etsy("/application/shops/" + l.shop_id + "/listings/" + p.etsy_listing_id, { method: "PATCH", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ title, tags: tags.join(",") }).toString() });
       const spec = Object.assign({}, p.spec, { listing: Object.assign({}, L, { etsyTitle: title, tags }) });
@@ -102,7 +112,9 @@ async function tuneSEO(max) {
       await db("seo_changes", { method: "POST", prefer: "return=minimal", body: [{ product_id: p.id, old_title: L.etsyTitle, new_title: title, old_tags: L.tags || [], new_tags: tags, views_before: p.etsy_views || 0, note: String(out.why || "").slice(0, 300) }] });
       await note("Tuned the Etsy title and tags of \"" + p.spec.title + "\" (only " + (p.etsy_views || 0) + " views in 2 weeks): " + String(out.why || "").slice(0, 200));
       n++;
-    } catch (e) { await note("Could not tune \"" + p.spec.title + "\": " + String(e.message).slice(0, 200)); }
+    } catch (e) {
+      await db("seo_changes", { method: "POST", prefer: "return=minimal", body: [{ product_id: p.id, old_title: L.etsyTitle, views_before: p.etsy_views || 0, note: "failed: " + String(e.message).slice(0, 280) }] }).catch(() => {});
+      await note("Could not tune \"" + p.spec.title + "\" (will try again tomorrow): " + String(e.message).slice(0, 200)); }
   }
   return n;
 }
@@ -146,7 +158,7 @@ module.exports = async (req, res) => {
     if (!codeOk(req, body)) return res.status(401).json({ error: "Wrong or missing access code.", code: "needs_code" });
     if (body.action === "status") {
       const [st, pins, pl, log, seo] = await Promise.all([db("settings?id=eq.1"), db("pins?select=id,product_id,style,status,title,posted_at,note&order=id.desc&limit=40"), P.plink().catch(() => null),
-        db("autopilot_log?select=at,text&kind=eq.marketing&order=id.desc&limit=12"), db("seo_changes?select=at,product_id,new_title,views_before,note&order=id.desc&limit=10")]);
+        db("autopilot_log?select=at,text&kind=eq.marketing&order=id.desc&limit=12"), db("seo_changes?select=at,product_id,new_title,views_before,note&new_title=not.is.null&order=id.desc&limit=10")]);
       return res.status(200).json({ shopText: (st[0] || {}).shop_text || null, pins, pinterest: { configured: P.configured(), connected: !!(pl && pl.refresh_token), username: pl && pl.username }, log, seo, shopUrl: SHOP_URL });
     }
     if (body.action === "run") return res.status(200).json(await runJob(true));

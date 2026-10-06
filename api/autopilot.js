@@ -1,4 +1,4 @@
-// Autopilot: runs every hour. Builds products from the best research ideas, has the AI check each one,
+// Autopilot: runs every 10 minutes. Builds products from the best research ideas, has the AI check each one,
 // and publishes the ones that pass to Etsy, within a daily limit. Everything it does is written to the log.
 const { cfg, db, claudeJSON } = require("./_lib");
 const { etsyConfigured, link, publishProduct } = require("./_etsy");
