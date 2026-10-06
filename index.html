@@ -198,6 +198,7 @@ td.n.c{color:var(--amber)}
 .vital.flash{animation:moneyflash 1.6s ease-out}
 .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
+.idea.outside{border-color:rgba(255,201,90,.55)!important}.idea.outside .chip{background:rgba(255,201,90,.18);color:#ffc95a}
 </style>
 <style>body{margin:0}img{max-width:100%}</style>
 </head>
@@ -1390,12 +1391,15 @@ function renderLab(){
   list.forEach(i=>{
     const d=document.createElement("div"); d.className="idea";
     const src=(i.sources||[]).slice(0,4).map(s=>'<a href="'+encodeURI(s.url)+'" target="_blank" rel="noopener">'+esc(String(s.title||s.url).slice(0,60))+'</a>').join("");
-    d.innerHTML='<div class="ihead"><b></b><span class="chip ok">'+esc(CATS[i.category]||i.category||"")+'</span><span class="iscore">'+(i.score||"-")+'/10</span></div><div class="imeta">'+(i.buyer?'<span>Buyer: '+esc(i.buyer)+'</span>':'')+(i.demand?'<span>Demand: <b class="lv '+i.demand+'">'+esc(i.demand)+'</b></span>':'')+(i.competition?'<span>Competition: <b class="lv c'+i.competition+'">'+esc(i.competition)+'</b></span>':'')+(i.price_range?'<span>Selling for: '+esc(i.price_range)+'</span>':'')+'</div><p class="iwhy"></p><p class="iev"></p><div class="isrc">'+src+'</div><div class="pmbtns"></div>';
+    if(i.fits===false) d.classList.add("outside");
+    d.innerHTML='<div class="ihead"><b></b><span class="chip ok">'+esc(i.fits===false?"For Josh to decide":(CATS[i.category]||i.category||""))+'</span><span class="iscore">'+(i.score||"-")+'/10</span></div><div class="imeta">'+(i.buyer?'<span>Buyer: '+esc(i.buyer)+'</span>':'')+(i.demand?'<span>Demand: <b class="lv '+i.demand+'">'+esc(i.demand)+'</b></span>':'')+(i.competition?'<span>Competition: <b class="lv c'+i.competition+'">'+esc(i.competition)+'</b></span>':'')+(i.price_range?'<span>Selling for: '+esc(i.price_range)+'</span>':'')+'</div><p class="iwhy"></p><p class="iev"></p><div class="isrc">'+src+'</div><div class="pmbtns"></div>';
     d.querySelector("b").textContent=i.title; d.querySelector(".iwhy").textContent=i.why||""; d.querySelector(".iev").textContent=(i.evidence?"Evidence: "+i.evidence:"")+(i.price_hint?"  |  Suggested price: $"+Number(i.price_hint).toFixed(2):"");
     const btns=d.querySelector(".pmbtns");
-    if(i.status==="new"){ const b=document.createElement("button"); b.className="good"; b.textContent="Build it"; b.onclick=()=>buildIdea(i,b); btns.appendChild(b);
+    if(i.fits===false && i.status==="new"){ const n=document.createElement("span"); n.className="note"; n.textContent="Outside what Moneyland makes today"+(i.format?" ("+i.format+")":"")+". Tell the Core if you want it added."; btns.appendChild(n); }
+    else if(i.status==="new"){ const b=document.createElement("button"); b.className="good"; b.textContent="Build it"; b.onclick=()=>buildIdea(i,b); btns.appendChild(b);
       const p=document.createElement("button"); p.textContent="Pass"; p.onclick=async()=>{ i.status="passed"; renderLab(); try{ await api("/api/data",{action:"idea.pass",id:i.id}); }catch(e){} }; btns.appendChild(p); }
-    else btns.innerHTML='<span class="note">'+({building:"Production is building this...",built:"Built. Check Needs your OK below."})[i.status]+'</span>';
+    if(i.fits===false && i.status==="new"){ const p=document.createElement("button"); p.textContent="Pass"; p.onclick=async()=>{ i.status="passed"; renderLab(); try{ await api("/api/data",{action:"idea.pass",id:i.id}); }catch(e){} }; btns.appendChild(p); }
+    else if(i.status!=="new") btns.innerHTML='<span class="note">'+({building:"Product Building is making this...",built:"Built. Check Needs your OK below."})[i.status]+'</span>';
     box.appendChild(d);
   });
 }
