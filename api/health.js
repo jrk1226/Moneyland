@@ -1,6 +1,7 @@
 // Health checker (every 15 minutes): checks every part of Moneyland, fixes what it safely can,
 // and saves a list of status lights for the website (settings.health). POST {action:"run"} runs it now.
 const { cfg, codeOk, readBody, db, claude, beat } = require("./_lib");
+const openaiKey = () => process.env.OPENAI_API_KEY || process.env.Open_AI || process.env.OPEN_AI || process.env.OPENAI_KEY || "";
 
 const MIN = 60000, HOUR = 60 * MIN;
 const ago = t => t ? Date.now() - new Date(t).getTime() : Infinity;
@@ -33,10 +34,10 @@ async function check(prev) {
   }
 
   // 3. Picture AI (OpenAI) - optional
-  if (!process.env.OPENAI_API_KEY) add("pictures", "Picture AI key", "off", "Not set up yet. Add OPENAI_API_KEY in Vercel to turn on lifestyle photos.");
+  if (!openaiKey()) add("pictures", "Picture AI key", "off", "Not set up yet. Add OPENAI_API_KEY in Vercel to turn on lifestyle photos.");
   else if (ago(memo.pic_at) < HOUR && memo.pic_ok) add("pictures", "Picture AI key", "ok", "Working (checked " + mins(ago(memo.pic_at)) + ").");
   else {
-    try { const r = await fetch("https://api.openai.com/v1/models", { headers: { Authorization: "Bearer " + process.env.OPENAI_API_KEY } });
+    try { const r = await fetch("https://api.openai.com/v1/models", { headers: { Authorization: "Bearer " + openaiKey() } });
       memo.pic_ok = r.ok; add("pictures", "Picture AI key", r.ok ? "ok" : "bad", r.ok ? "Working." : "OpenAI says the key is not valid (" + r.status + ")."); }
     catch (e) { memo.pic_ok = false; add("pictures", "Picture AI key", "warn", "Could not reach OpenAI: " + e.message); }
     memo.pic_at = new Date().toISOString();
@@ -104,7 +105,7 @@ async function check(prev) {
   const sb = beats.studio;
   const media = await db("products?select=media&etsy_state=eq.active");
   const withVid = media.filter(p => p.media && p.media.video_id).length, withPics = media.filter(p => p.media && (p.media.lifestyle || []).length).length;
-  const cover = withVid + " of " + media.length + " listings have a video" + (process.env.OPENAI_API_KEY ? ", " + withPics + " have lifestyle photos." : ".");
+  const cover = withVid + " of " + media.length + " listings have a video" + (openaiKey() ? ", " + withPics + " have lifestyle photos." : ".");
   if (st.studio_on === false || st.marketing_on === false) add("studio", "Photo Studio", "off", "Switched off. " + cover);
   else if (!sb) add("studio", "Photo Studio", "warn", "Waiting for its first check-in. " + cover);
   else if (ago(sb.at) > 40 * MIN) add("studio", "Photo Studio", "bad", "Has not run since " + mins(ago(sb.at)) + ". " + cover);

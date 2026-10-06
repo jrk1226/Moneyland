@@ -3,12 +3,13 @@
 // Moneyland then lays the REAL product pages onto them, so the photo always shows exactly what the buyer gets.
 // Claude looks at every background and every finished photo and throws out anything that is not good.
 const { db, claude, parseJSON } = require("./_lib");
+const openaiKey = () => process.env.OPENAI_API_KEY || process.env.Open_AI || process.env.OPEN_AI || process.env.OPENAI_KEY || "";
 const OUT = require("../lib/design/output");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://larxtghtrxcfadtqgcdz.supabase.co";
 const BUCKET = "media";
 const PW = 2400, PH = 1800; // Etsy photo size (4:3)
 
-const imagesConfigured = () => !!process.env.OPENAI_API_KEY;
+const imagesConfigured = () => !!openaiKey();
 
 // ---------- storage ----------
 function storeHeaders(type) {
@@ -83,7 +84,7 @@ async function aiImage(prompt) {
   let last;
   for (const model of goodModel ? [goodModel] : IMAGE_MODELS()) {
     const r = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST", headers: { Authorization: "Bearer " + process.env.OPENAI_API_KEY, "content-type": "application/json" },
+      method: "POST", headers: { Authorization: "Bearer " + openaiKey(), "content-type": "application/json" },
       body: JSON.stringify({ model, prompt, size: "1536x1024", quality: "medium", n: 1 }),
     });
     const d = await r.json().catch(() => ({}));
