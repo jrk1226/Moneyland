@@ -332,7 +332,7 @@ td.n.c{color:var(--amber)}
     </div>
     <div class="etsybar" id="etsyBar"><span class="etsydot" id="etsyDot"></span><span id="etsyText">Etsy: checking...</span><button id="btnEtsy" hidden>Connect Etsy shop</button><button id="btnEtsySync" hidden>Count sales now</button></div>
     <div class="watch" id="watch" hidden>
-      <div class="watchhead"><div><b>Who's looking</b><small id="watchNote">Views and favorites from Etsy, refreshed every 15 minutes.</small></div>
+      <div class="watchhead"><div><b>Who's looking</b><small id="watchNote">Views and favorites from Etsy, refreshed every 10 minutes.</small></div>
         <div class="watchtot"><span><em id="wViews">0</em>views</span><span><em id="wFavs">0</em>favorites</span><span><em id="wSold">0</em>sold</span></div>
         <a class="wlink" href="https://www.etsy.com/your/shops/me/stats" target="_blank" rel="noopener">Open Etsy Stats</a></div>
       <div class="wlist" id="wList"></div>
@@ -359,7 +359,7 @@ td.n.c{color:var(--amber)}
       <div class="vitals"><div class="vital"><small>Pins ready</small><b id="mPinsReady">0</b></div><div class="vital"><small>Pins posted</small><b id="mPinsPosted">0</b></div><button class="foldbtn mk" id="mkFold" aria-expanded="false" aria-controls="mkBody">Show <span aria-hidden="true">&#9662;</span></button></div>
     </div>
     <div id="mkBody" hidden>
-      <div class="makebar"><button id="btnMkRun" class="primary">Run marketing now</button><p class="note" id="mkNote">Runs on its own every 3 hours.</p></div>
+      <div class="makebar"><button id="btnMkRun" class="primary">Run marketing now</button><p class="note" id="mkNote">Runs on its own nonstop, every 10 minutes.</p></div>
       <h3 class="mkh">Brand kit</h3>
       <div class="brandgrid" id="brandGrid"></div>
       <h3 class="mkh">Pinterest</h3>
@@ -1323,7 +1323,7 @@ function renderWatch(){
   const tv=live.reduce((a,i)=>a+i.views,0), tf=live.reduce((a,i)=>a+i.favs,0), ts=live.reduce((a,i)=>a+i.sales,0);
   $("wViews").textContent=tv; $("wFavs").textContent=tf; $("wSold").textContent=ts;
   const at=live.map(i=>i.statsAt).filter(Boolean).sort().pop();
-  $("watchNote").textContent=at?"Updated from Etsy "+ago(at)+". Etsy updates view counts every few hours, so new views show up with a delay.":"Waiting for the first count from Etsy (every 15 minutes).";
+  $("watchNote").textContent=at?"Updated from Etsy "+ago(at)+". Etsy updates view counts every few hours, so new views show up with a delay.":"Waiting for the first count from Etsy (every 10 minutes).";
   const box=$("wList"); box.innerHTML="";
   live.slice().sort((a,b)=>b.views-a.views||b.favs-a.favs).forEach(i=>{
     const r=document.createElement("div"); r.className="wrow";
@@ -1524,7 +1524,7 @@ const ROOMS=[
   {k:"lab",    real:"research_on", desc:"Researches Etsy every hour for ideas (uses AI credit)"},
   {k:"prod",   real:"build_on",    desc:"Builds new products from the best ideas"},
   {k:"market", real:"publish_on",  desc:"Publishes products to your Etsy shop"},
-  {k:"ledger", real:"sales_on",    desc:"Counts real Etsy sales every 15 minutes"},
+  {k:"ledger", real:"sales_on",    desc:"Counts real Etsy sales every 10 minutes"},
   {k:"square", real:"marketing_on", desc:"Pinterest pins, shop text and search tuning"},
   {k:"studio", real:null, desc:"Designers' workshop (animation only)"},
   {k:"cafe",   real:null, desc:"Where residents take breaks (animation only)"},
@@ -1555,7 +1555,7 @@ function renderAuto(){
   const bar=$("autoBar"); if(MODE!=="db"||!SETTINGS){ bar.hidden=true; return; } bar.hidden=false;
   const on=!!SETTINGS.autopilot && SETTINGS.build_on!==false && SETTINGS.publish_on!==false; $("autoState").textContent=on?"On":(SETTINGS.build_on===false&&SETTINGS.publish_on===false?"Off":"Partly on"); $("autoState").className="chip "+(on?"ok":"boost"); $("btnAuto").textContent=on?"Turn off":"Turn on";
   $("autoCap").value=String(SETTINGS.max_listings_per_day||5);
-  $("autoLog").innerHTML=AUTOLOG.length?AUTOLOG.slice(0,8).map(l=>'<li class="'+esc(l.kind)+'"><time>'+ago(l.at)+'</time>'+esc(l.text)+'</li>').join(""):'<li><time></time>Nothing yet. Autopilot runs every hour once the keys and Etsy are connected.</li>';
+  $("autoLog").innerHTML=AUTOLOG.length?AUTOLOG.slice(0,8).map(l=>'<li class="'+esc(l.kind)+'"><time>'+ago(l.at)+'</time>'+esc(l.text)+'</li>').join(""):'<li><time></time>Nothing yet. Autopilot runs every 10 minutes once the keys and Etsy are connected.</li>';
 }
 async function saveSettings(fields){ try{ const d=await api("/api/data",{action:"settings.set",fields}); if(d.settings) SETTINGS=d.settings; }catch(e){ $("makeNote").textContent=e.message||"Couldn't save the switch."; } renderAuto(); renderRooms(); }
 $("btnAuto").addEventListener("click",()=>saveSettings({autopilot:!(SETTINGS&&SETTINGS.autopilot)}));
@@ -1567,7 +1567,7 @@ function renderEtsy(){
   const t=$("etsyText"), dot=$("etsyDot");
   $("btnEtsy").hidden=!(MODE==="db"&&ETSY.configured&&!ETSY.connected); $("btnEtsySync").hidden=!ETSY.connected;
   dot.className="etsydot"+(ETSY.connected?" on":"");
-  t.textContent= MODE!=="db" ? "Etsy: connects on the Moneyland website." : !ETSY.configured ? "Etsy: not connected. Add the Etsy keys in Vercel to connect your shop." : !ETSY.connected ? "Etsy: keys added. Tap Connect Etsy shop and approve on Etsy." : "Etsy: connected to "+(ETSY.shop_name||"your shop")+". Sales are counted automatically every 15 minutes"+(ETSY.last_sync?" (last count "+ago(ETSY.last_sync)+")":"")+".";
+  t.textContent= MODE!=="db" ? "Etsy: connects on the Moneyland website." : !ETSY.configured ? "Etsy: not connected. Add the Etsy keys in Vercel to connect your shop." : !ETSY.connected ? "Etsy: keys added. Tap Connect Etsy shop and approve on Etsy." : "Etsy: connected to "+(ETSY.shop_name||"your shop")+". Sales are counted automatically every 10 minutes"+(ETSY.last_sync?" (last count "+ago(ETSY.last_sync)+")":"")+".";
 }
 async function etsyStatus(){ if(MODE!=="db"){ renderEtsy(); return; } try{ ETSY=await api("/api/etsy",{action:"status"}); }catch(e){} renderEtsy(); }
 $("btnEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=connect&code="+encodeURIComponent(accessCode||""); });

@@ -43,15 +43,15 @@
     },
     {
       "path": "/api/autopilot",
-      "schedule": "10 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/etsy-sync",
-      "schedule": "*/15 * * * *"
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/marketing?do=cron",
-      "schedule": "20 */3 * * *"
+      "schedule": "5-59/10 * * * *"
     }
   ]
 }
