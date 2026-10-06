@@ -2,7 +2,7 @@
 // An AI photographer (OpenAI images) makes empty styled backgrounds once and keeps them in a library.
 // Moneyland then lays the REAL product pages onto them, so the photo always shows exactly what the buyer gets.
 // Claude looks at every background and every finished photo and throws out anything that is not good.
-const { db, claude, parseJSON } = require("./_lib");
+const { db, claudeJSON } = require("./_lib");
 const openaiKey = () => process.env.OPENAI_API_KEY || process.env.Open_AI || process.env.OPEN_AI || process.env.OPENAI_KEY || "";
 const OUT = require("../lib/design/output");
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://larxtghtrxcfadtqgcdz.supabase.co";
@@ -99,10 +99,11 @@ async function aiImage(prompt) {
 async function lookAt(png, question) {
   const sharp = require("sharp");
   const small = await sharp(png).resize(1200, null, { withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer();
-  const out = await claude({ tier: "smart", maxTokens: 600, prompt: [
+  let d;
+  try { d = (await claudeJSON({ tier: "smart", maxTokens: 1200, prompt: [
     { type: "image", source: { type: "base64", media_type: "image/jpeg", data: small.toString("base64") } },
-    { type: "text", text: question + "\nReply with only JSON: {\"score\": 1-10, \"note\": \"short reason\"}" }] });
-  const d = parseJSON(out.text);
+    { type: "text", text: question + "\nAnswer with nothing but this JSON, no other words: {\"score\": <whole number 1-10>, \"note\": \"<short reason>\"}" }] })).data; }
+  catch (e) { return { score: 0, note: "picture check did not answer: " + String(e.message).slice(0, 120) }; }
   return { score: parseInt(d.score, 10) || 0, note: String(d.note || "").slice(0, 200) };
 }
 async function makeScene(mood) {
@@ -111,13 +112,11 @@ async function makeScene(mood) {
   const prompt = scenePrompt(mood, variant);
   const { png, model } = await aiImage(prompt);
   const wall = MOODS[mood].kind === "wall";
+  const path = "scenes/" + mood + "-" + Date.now() + ".png";
+  await putFile(path, png, "image/png");
   const check = await lookAt(png, wall
     ? "This is meant to be an empty interior wall where framed art prints will be added later. Score it: is the top two thirds a large plain empty wall with nothing on it, is it realistic, attractive and free of text, logos, warped furniture or AI mistakes?"
     : "This is meant to be a styled overhead tabletop photo where printed paper pages will be laid in the middle later. Score it: is the central 60 percent completely empty plain surface, are the props only around the edges, is it realistic and attractive, and is it free of text, logos, melted or warped objects and other AI mistakes?");
-  const path = "scenes/" + mood + "-" + Date.now() + ".png";
-  const sharp = require("sharp");
-  const stored = await sharp(png).png({ compressionLevel: 8 }).toBuffer();
-  await putFile(path, stored, "image/png");
   const row = { mood, kind: MOODS[mood].kind, prompt, path, score: check.score, note: check.note, model, ok: check.score >= 7 };
   await db("scenes", { method: "POST", prefer: "return=minimal", body: [row] });
   return row;
@@ -238,7 +237,9 @@ async function upgradeListing(prod, deadline, note) {
   let lifestyle = [];
   if (imagesConfigured() && !media.lifestyle_done) {
     try { lifestyle = await lifestylePhotos(prod, deadline); media.lifestyle_done = true; media.lifestyle = lifestyle.map(x => x.url); }
-    catch (e) { media.lifestyle_error = String(e.message).slice(0, 200); if (e.status === 401 || e.status === 429) media.lifestyle_blocked_at = new Date().toISOString(); }
+    catch (e) { media.lifestyle_error = String(e.message).slice(0, 200); media.lifestyle_fails = (media.lifestyle_fails || 0) + 1;
+      if (e.status === 401 || e.status === 429 || media.lifestyle_fails >= 3) media.lifestyle_blocked_at = new Date().toISOString();
+      await note("Studio: lifestyle photos for \"" + prod.spec.title + "\" did not work this time (" + media.lifestyle_error + ")."); }
     if (lifestyle.length) { const n = await replacePhotos(prod, lifestyle); await note("Studio: added " + lifestyle.length + " lifestyle photo" + (lifestyle.length > 1 ? "s" : "") + " to \"" + prod.spec.title + "\" (" + n + " photos on the listing now)."); }
   }
   if (!media.video_id && Date.now() < deadline - 70000) {
