@@ -105,10 +105,14 @@ module.exports = async (req, res) => {
     // 2. Build: keep the line full from the best research ideas.
     const waiting = await db("products?select=id&status=in.(review,approved)&qa_note=is.null&source=neq.starter");
     if (settings.build_on !== false && waiting.length < 4 && timeLeft() > 200000) {
-      const idea = (await db("ideas?select=*&status=eq.new&fits=eq.true&score=gte.8&order=score.desc,id.desc&limit=1"))[0];
+      const idea = (await db("ideas?select=*&status=eq.new&fits=eq.true&score=gte.8&build_fails=lt.2&order=score.desc,id.desc&limit=1"))[0];
       if (idea) {
         try { const made = await buildProducts({ ideaId: idea.id, deadline: started + 285000 }); await note("built", "Built \"" + (made[0] && made[0].spec.title) + "\" from research idea \"" + idea.title + "\""); done.push("built idea " + idea.id); }
-        catch (e) { await note("error", "Could not build \"" + idea.title + "\": " + (e.message || e)); }
+        catch (e) {
+          const fails = (idea.build_fails || 0) + 1;
+          await db("ideas?id=eq." + idea.id, { method: "PATCH", body: { build_fails: fails } }).catch(() => {});
+          await note("error", "Could not build \"" + idea.title + "\": " + (e.message || e) + (fails >= 2 ? " Gave up on this idea after 2 tries; moving to the next one." : " Will try once more."));
+        }
       }
     }
     await beat("autopilot", true, done.join(", "));

@@ -53,7 +53,7 @@ async function buildProducts({ ideaId, count, deadline }) {
   try {
     const prompt = ask + "\n\nBest sellers so far: " + best + ".\nDo not repeat these existing products: " + have + ".\n\n" + TEMPLATES
       + "\n\nReply with only a JSON array of product objects. Use plain straight quotes only for JSON syntax; never put double quote characters inside text values.";
-    let arr = (await claudeJSON({ tier: "smart", prompt, maxTokens: 16000 })).data; if (!Array.isArray(arr)) arr = arr.products || [arr];
+    let arr = (await claudeJSON({ tier: "smart", prompt, maxTokens: 30000 })).data; if (!Array.isArray(arr)) arr = arr.products || [arr];
     const specs = arr.filter(valid).slice(0, 3).map(tidy);
     if (!specs.length) throw new Error("The AI did not return a usable product. Try again.");
     for (const s of specs) { if (s.category !== "wallart") await illustrate(s, deadline - 20000); }
