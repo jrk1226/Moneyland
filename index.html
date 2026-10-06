@@ -153,6 +153,15 @@ td.n.c{color:var(--amber)}
 .pmclose{position:absolute;top:14px;right:14px}
 .salesn{font-family:var(--mono);font-size:18px;color:var(--amber);min-width:30px;text-align:center}
 .good{background:linear-gradient(90deg,#2ee6a6,#46e3ff)!important;color:#04101c!important;border-color:transparent!important}
+.autobar{border:1px solid rgba(166,255,92,.35);background:rgba(166,255,92,.04);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.autohead{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.autohead b{font-family:var(--display);letter-spacing:.12em;text-transform:uppercase;color:#a6ff5c}
+.autohead .chip{margin-left:0}
+.autohead select{font:inherit;background:rgba(4,10,22,.7);color:var(--ink);border:1px solid var(--line2);padding:4px 8px}
+.autolog{list-style:none;margin:0;padding:0;font-size:12.5px;display:flex;flex-direction:column;gap:3px}
+.autolog li{display:grid;grid-template-columns:96px minmax(0,1fr);gap:8px}
+.autolog time{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.autolog li.published{color:#cfffa6}.autolog li.held,.autolog li.error{color:#ffb3ec}
 .etsybar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 12px;border:1px solid var(--line);background:rgba(4,10,22,.45);font-size:13px}
 .etsydot{width:10px;height:10px;border-radius:50%;background:var(--magenta);box-shadow:0 0 8px var(--magenta)}
 .etsydot.on{background:#a6ff5c;box-shadow:0 0 8px #a6ff5c}
@@ -277,6 +286,14 @@ td.n.c{color:var(--amber)}
       </div>
     </div>
     <div class="etsybar" id="etsyBar"><span class="etsydot" id="etsyDot"></span><span id="etsyText">Etsy: checking...</span><button id="btnEtsy" hidden>Connect Etsy shop</button><button id="btnEtsySync" hidden>Count sales now</button></div>
+    <div class="autobar" id="autoBar" hidden>
+      <div class="autohead"><b>Autopilot</b><span id="autoState" class="chip ok">On</span>
+        <button id="btnAuto">Turn off</button>
+        <label for="autoCap" class="note">New Etsy listings per day</label>
+        <select id="autoCap"><option>1</option><option>3</option><option>5</option><option>10</option></select></div>
+      <p class="note">Every hour Autopilot builds products from the best research ideas, has a second AI check each one for mistakes and Etsy rule problems, and publishes the ones that pass. Anything that fails stays in Needs your OK with the reason.</p>
+      <ul class="autolog" id="autoLog"></ul>
+    </div>
     <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to page through it, approve it, then download the PDF and listing photo and copy its Etsy listing.</p></div>
     <div class="board">
       <div class="bcol"><h3>1. Needs your OK</h3><div class="bcards" id="colReview"></div></div>
@@ -969,9 +986,10 @@ const ACC={purple:"#7B4FD6", teal:"#0E9F9A", orange:"#F07F1C", pink:"#E0508F", b
 const CATS={kids:"Kids", planner:"Planners & trackers", party:"Party & events"};
 const TPL_NAMES={chart:"Chart",reward:"Reward chart",math:"Math worksheet",tracing:"Tracing worksheet",table:"Tracker",planner:"Planner page",sign:"Sign",letter:"Letter",certificate:"Certificate",bingo:"Bingo",scramble:"Word scramble",labels:"Labels",bundle:"Bundle"};
 const FOOT="For personal and classroom use. Print at home on US Letter paper.";
-const mctx=document.createElement("canvas").getContext("2d");
+const mctx=(typeof document!=="undefined")?document.createElement("canvas").getContext("2d"):null;
+let TW=null;
 function clean(t){ return String(t==null?"":t).replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x20-\x7E -ÿ]/g,""); }
-function tw(txt,size,bold){ mctx.font=(bold?"bold ":"")+size+"px Helvetica, Arial, sans-serif"; return mctx.measureText(txt).width; }
+function tw(txt,size,bold){ if(TW) return TW(txt,size,bold); mctx.font=(bold?"bold ":"")+size+"px Helvetica, Arial, sans-serif"; return mctx.measureText(txt).width; }
 function wrapT(txt,size,bold,maxW){ const words=clean(txt).split(/\s+/).filter(Boolean), out=[]; let cur="";
   words.forEach(w=>{ const t=cur?cur+" "+w:w; if(tw(t,size,bold)>maxW && cur){ out.push(cur); cur=w; } else cur=t; }); if(cur) out.push(cur); return out.length?out:[""]; }
 function tint(hex,t){ const n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255, f=v=>Math.round(v+(255-v)*t).toString(16).padStart(2,"0"); return "#"+f(r)+f(g)+f(b); }
@@ -1218,8 +1236,8 @@ async function listingPNG(spec){
 
 /* ---------- data: the website keeps everything in the Moneyland database; the Claude copy uses this browser ---------- */
 const SHOPKEY="moneyland-shop-v3";
-let MODE="local", SHOP={items:[],nextId:1}, IDEAS=[], LASTRUN=null;
-function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source,etsyId:r.etsy_listing_id||null,etsyState:r.etsy_state||null}; }
+let MODE="local", SHOP={items:[],nextId:1}, IDEAS=[], LASTRUN=null, SETTINGS=null, AUTOLOG=[];
+function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source,etsyId:r.etsy_listing_id||null,etsyState:r.etsy_state||null,qa:r.qa_note||null,auto:!!r.auto_published}; }
 function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
   return {nextId:SEEDS.length+1, items:SEEDS.map((p,i)=>({id:i+1,status:"review",spec:p,price:p.listing.price,sales:0,source:"starter"}))}; }
 function saveLocal(){ if(MODE!=="local") return; try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
@@ -1231,17 +1249,17 @@ async function api(path,body){
 }
 async function refresh(){
   if(MODE!=="db") return;
-  try{ const d=await api("/api/data"); SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; renderShopBoard(); renderLab(); }
+  try{ const d=await api("/api/data"); SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; SETTINGS=d.settings; AUTOLOG=d.autolog||[]; renderShopBoard(); renderLab(); renderAuto(); }
   catch(e){ $("labNote").textContent=e.message||"Couldn't reach the database."; }
 }
 async function startData(){
   try{ const r=await fetch("/api/data",{headers:{"x-moneyland-code":accessCode||""}}); const d=await r.json();
-    if(d.configured&&d.configured.db){ MODE="db"; if(r.ok){ SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun;
+    if(d.configured&&d.configured.db){ MODE="db"; if(r.ok){ SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; SETTINGS=d.settings; AUTOLOG=d.autolog||[];
         if(!SHOP.items.length){ try{ const sd=await api("/api/data",{action:"seed",items:SEEDS.slice().reverse()}); if(sd.products) SHOP.items=sd.products.map(norm); }catch(e){} } }
       else if(d.code==="needs_code") showCode(); }
     else { SHOP=loadLocal(); $("labNote").textContent="The Research Lab runs once the Moneyland database key is added in Vercel."; }
   }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Lab and daily research run on the Moneyland website. This copy keeps products in this browser."; }
-  renderShopBoard(); renderLab(); etsyStatus();
+  renderShopBoard(); renderLab(); etsyStatus(); renderAuto();
   if(MODE==="db") setInterval(refresh,60000);
 }
 async function updateItem(it,fields){
@@ -1258,7 +1276,7 @@ function renderShopBoard(){
   Object.values(cols).forEach(c=>c.innerHTML="");
   SHOP.items.forEach(it=>{
     const c=document.createElement("button"); c.className="pcard"; c.type="button";
-    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+(it.etsyId?' &middot; '+(it.etsyState==="active"?"live on Etsy":"Etsy draft"):'')+'</small></div>';
+    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+(it.etsyId?' &middot; '+(it.etsyState==="active"?"live on Etsy":"Etsy draft"):'')+(it.qa&&/^Held|failed/.test(it.qa)?' &middot; <span style="color:var(--magenta)">needs a look</span>':'')+'</small></div>';
     c.querySelector("b").textContent=clean(it.spec.title);
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
@@ -1284,6 +1302,7 @@ function openProduct(id){
   $("pmReviewBtns").hidden=it.status!=="review"; $("pmReadyBtns").hidden=it.status!=="approved"; $("pmLiveBtns").hidden=it.status!=="listed";
   $("pmSales").textContent=it.sales; $("pmMsg").textContent="";
   $("pmEtsySend").hidden=!(MODE==="db" && ETSY.connected); $("pmEtsySend").textContent=it.etsyId?"Update Etsy draft files":"Send to Etsy";
+  if(it.qa && /^Held|failed/.test(it.qa)) $("pmMsg").textContent=it.qa;
   if(it.etsyId) $("pmMsg").innerHTML='On Etsy as a '+(it.etsyState==="active"?"live listing":"draft")+'. <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/'+it.etsyId+'" target="_blank" rel="noopener">Open it on Etsy</a>';
   $("pmodal").hidden=false; $("pmClose").focus();
 }
@@ -1291,7 +1310,7 @@ function listingDesc(spec){
   const who={kids:"Made for kids at home or in the classroom.",planner:"A simple way to stay organized and on track.",party:"Perfect for birthdays, showers and celebrations."}[spec.category]||"";
   const n=pageCount(spec), inside=spec.template==="bundle"?"\n\nWHAT'S INSIDE\n"+(spec.pages||[]).map(p=>"- "+clean(p.title)).join("\n"):"";
   const keys=/"template":"(math|scramble)"/.test(JSON.stringify(spec))?"\n- Answer keys included":"";
-  return clean(spec.title)+"\n\n"+who+" "+clean(spec.subtitle||"")+inside+"\n\nWHAT YOU GET\n- 1 PDF file with "+n+" printable page"+(n>1?"s":"")+", US Letter size (8.5 x 11 in)"+keys+"\n- Instant digital download. Nothing is shipped.\n- Print as many copies as you need for personal or classroom use.\n\nHOW IT WORKS\n1. Buy and download the PDF from your Etsy purchases page.\n2. Print at home or at any print shop.\n\nThis design was created with the help of AI tools and checked by a person before listing.";
+  return clean(spec.title)+"\n\n"+who+" "+clean(spec.subtitle||"")+inside+"\n\nWHAT YOU GET\n- 1 PDF file with "+n+" printable page"+(n>1?"s":"")+", US Letter size (8.5 x 11 in)"+keys+"\n- Instant digital download. Nothing is shipped.\n- Print as many copies as you need for personal or classroom use.\n\nHOW IT WORKS\n1. Buy and download the PDF from your Etsy purchases page.\n2. Print at home or at any print shop.\n\nThis design was created with the help of AI tools.";
 }
 function closeProduct(){ $("pmodal").hidden=true; openId=null; }
 function cur(){ return SHOP.items.find(x=>x.id===openId); }
@@ -1310,7 +1329,12 @@ $("pmClose").addEventListener("click",closeProduct);
 $("pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") closeProduct(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("pmodal").hidden) closeProduct(); });
 $("pmPrev").addEventListener("click",()=>{ prevPage--; showPage(); }); $("pmNext").addEventListener("click",()=>{ prevPage++; showPage(); });
-$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and listing photo, then copy the listing text into Etsy."); log("Approved for Etsy: "+clean(it.spec.title),"core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
+$("pmApprove").addEventListener("click",async()=>{ const it=cur(); log("Approved for Etsy: "+clean(it.spec.title),"core"); say(CORE,"Approved: "+clean(it.spec.title),3500);
+  if(MODE==="db" && ETSY.connected){ const b=$("pmApprove"); b.disabled=true; b.textContent="Publishing...";
+    try{ await api("/api/etsy",{action:"publish",productId:it.id}); it.status="listed"; it.etsyState="active"; renderShopBoard(); openProduct(it.id); $("pmMsg").textContent="Approved and published on Etsy."; }
+    catch(e){ await setStatus("approved",""); $("pmMsg").textContent="Approved, but the Etsy upload failed: "+(e.message||""); }
+    finally{ b.disabled=false; b.textContent="Approve"; } return; }
+  setStatus("approved","Approved. Download the PDF and listing photo, then copy the listing text into Etsy."); });
 let rejArm=0;
 $("pmReject").addEventListener("click",async()=>{ if(Date.now()-rejArm>3000){ rejArm=Date.now(); $("pmReject").textContent="Click again to delete"; setTimeout(()=>$("pmReject").textContent="Reject",3000); return; }
   const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; log("Rejected: "+clean(it.spec.title),"core");
@@ -1378,6 +1402,17 @@ $("btnMake").addEventListener("click", async ()=>{
   finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
 });
 
+
+/* ---------- Autopilot ---------- */
+function renderAuto(){
+  const bar=$("autoBar"); if(MODE!=="db"||!SETTINGS){ bar.hidden=true; return; } bar.hidden=false;
+  const on=!!SETTINGS.autopilot; $("autoState").textContent=on?"On":"Off"; $("autoState").className="chip "+(on?"ok":"bad"); $("btnAuto").textContent=on?"Turn off":"Turn on";
+  $("autoCap").value=String(SETTINGS.max_listings_per_day||5);
+  $("autoLog").innerHTML=AUTOLOG.length?AUTOLOG.slice(0,8).map(l=>'<li class="'+esc(l.kind)+'"><time>'+ago(l.at)+'</time>'+esc(l.text)+'</li>').join(""):'<li><time></time>Nothing yet. Autopilot runs every hour once the keys and Etsy are connected.</li>';
+}
+async function saveSettings(fields){ try{ const d=await api("/api/data",{action:"settings.set",fields}); SETTINGS=d.settings; }catch(e){ $("makeNote").textContent=e.message||"Couldn't save."; } renderAuto(); }
+$("btnAuto").addEventListener("click",()=>saveSettings({autopilot:!(SETTINGS&&SETTINGS.autopilot)}));
+$("autoCap").addEventListener("change",()=>saveSettings({max_listings_per_day:parseInt($("autoCap").value,10)}));
 /* ---------- Etsy connection ---------- */
 let ETSY={configured:false,connected:false};
 function blobB64(b){ return new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok(String(r.result).split(",")[1]); r.onerror=bad; r.readAsDataURL(b); }); }
