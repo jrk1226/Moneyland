@@ -1,6 +1,6 @@
 // Research Lab: searches the web for high-value printable products people are buying on Etsy right now.
 // Runs 4 times a day from the Vercel cron in vercel.json, or on demand from the website.
-const { cfg, codeOk, readBody, db, claude, parseJSON } = require("./_lib");
+const { cfg, codeOk, readBody, db, claudeJSON } = require("./_lib");
 
 // Each run looks at the market from a different angle so the ideas stay fresh.
 const FOCUS = [
@@ -41,8 +41,7 @@ module.exports = async (req, res) => {
       + "Our current products: " + have + ".\nIdeas already suggested before (do not repeat or closely copy): " + seen + ".\nOur sales so far: " + sold + ".\n\n"
       + "Reply with only JSON: {\"summary\": \"3-4 plain sentences on what you found and what to make next\", \"ideas\": [{\"title\": \"product name, max 60 chars\", \"category\": \"kids\"|\"planner\"|\"party\", \"buyer\": \"who buys it, max 40 chars\", \"why\": \"why it will sell, max 160 chars\", \"evidence\": \"what you found that proves demand, with numbers when you have them, max 220 chars\", \"demand\": \"High\"|\"Medium\"|\"Low\", \"competition\": \"High\"|\"Medium\"|\"Low\", \"price_range\": \"what similar listings charge, e.g. $6-$12\", \"price_hint\": number, \"score\": 1-10}]}. "
       + "Give the 4 best ideas, ranked best first. Score 8 or more only when demand is proven and the product is easy to make with the layouts above. No emojis.";
-    const { text, blocks } = await claude({ tier: "smart", prompt, maxTokens: 6000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }] });
-    const out = parseJSON(text);
+    const { data: out, blocks } = await claudeJSON({ tier: "smart", prompt, maxTokens: 6000, tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 8 }] });
     const sources = [];
     blocks.forEach(b => { if (b.type === "web_search_tool_result" && Array.isArray(b.content)) b.content.forEach(r => { if (r.url && sources.length < 12 && !sources.some(s => s.url === r.url)) sources.push({ url: r.url, title: r.title || r.url }); }); });
     const run = (await db("research_runs", { method: "POST", body: [{ trigger: isCron ? "auto" : "manual", focus, summary: String(out.summary || "").slice(0, 1200), ok: true }] }))[0];

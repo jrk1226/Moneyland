@@ -1,5 +1,5 @@
 // Turns a researched idea (or "make N new") into products waiting in the queue. Shared by the website and Autopilot.
-const { db, claude, parseJSON } = require("./_lib");
+const { db, claudeJSON } = require("./_lib");
 const { TEMPLATES } = require("./_spec");
 const TPL = ["chart","reward","math","tracing","table","planner","letter","certificate","bingo","scramble","labels","sign","bundle"];
 function valid(p) { return p && TPL.includes(p.template) && p.title && (p.template !== "bundle" || (Array.isArray(p.pages) && p.pages.length)); }
@@ -19,9 +19,8 @@ async function buildProducts({ ideaId, count }) {
     ask = "Create " + n + " NEW products, ideally one from each category (kids, planner, party). Lean toward what sells.";
   }
   try {
-    const prompt = ask + "\n\nBest sellers so far: " + best + ".\nDo not repeat these existing products: " + have + ".\n\n" + TEMPLATES + "\n\nReply with only a JSON array of product objects.";
-    const { text } = await claude({ tier: "smart", prompt, maxTokens: 8000 });
-    let arr = parseJSON(text); if (!Array.isArray(arr)) arr = arr.products || [arr];
+    const prompt = ask + "\n\nBest sellers so far: " + best + ".\nDo not repeat these existing products: " + have + ".\n\n" + TEMPLATES + "\n\nReply with only a JSON array of product objects. Use plain straight quotes only for JSON syntax; never put double quote characters inside text values.";
+    let arr = (await claudeJSON({ tier: "smart", prompt, maxTokens: 8000 })).data; if (!Array.isArray(arr)) arr = arr.products || [arr];
     const rows = arr.filter(valid).slice(0, 4).map(p => ({ status: "review", spec: p, source: idea ? "research" : "core", idea_id: idea ? idea.id : null,
       price: Math.min(15, Math.max(1.5, Number(p.listing && p.listing.price) || 4)) }));
     if (!rows.length) throw new Error("The AI did not return a usable product. Try again.");

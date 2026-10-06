@@ -49,8 +49,23 @@ function parseJSON(text) {
   const t = String(text || "");
   const fence = t.match(/```(?:json)?\s*([\s\S]*?)```/);
   const src = fence ? fence[1] : t;
-  const a = src.search(/[\[{]/), b = Math.max(src.lastIndexOf("}"), src.lastIndexOf("]"));
-  if (a < 0 || b < a) throw new Error("No JSON in AI answer");
-  return JSON.parse(src.slice(a, b + 1));
+  let lastErr = new Error("No JSON in AI answer"), tries = 0;
+  for (let i = 0; i < src.length && tries < 25; i++) {
+    const ch = src[i]; if (ch !== "{" && ch !== "[") continue;
+    const end = src.lastIndexOf(ch === "{" ? "}" : "]"); if (end <= i) continue;
+    tries++;
+    try { return JSON.parse(src.slice(i, end + 1)); } catch (e) { lastErr = e; }
+  }
+  throw lastErr;
 }
-module.exports = { cfg, codeOk, readBody, db, claude, parseJSON };
+// Ask Claude for JSON; if the reply is not valid JSON, have Claude repair it once.
+async function claudeJSON(opts) {
+  const out = await claude(opts);
+  try { return { data: parseJSON(out.text), blocks: out.blocks }; }
+  catch (e) {
+    const fix = await claude({ tier: "smart", maxTokens: opts.maxTokens || 4000,
+      prompt: "The text below was supposed to be valid JSON but is broken (" + e.message + "). Return the same content as valid JSON. Escape any double quotes inside strings, remove trailing commas, close any unclosed brackets. Reply with only the JSON, nothing else.\n\n" + String(out.text).slice(0, 60000) });
+    return { data: parseJSON(fix.text), blocks: out.blocks };
+  }
+}
+module.exports = { cfg, codeOk, readBody, db, claude, parseJSON, claudeJSON };
