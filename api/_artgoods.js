@@ -73,6 +73,18 @@ async function drawColoring(prod, job) {
   return art;
 }
 
+// ---------- cover illustration for page products (ChatGPT) ----------
+function needsCover(spec) { return spec.category !== "artpack" && spec.category !== "wallart" && O.configured() && spec.coverArt && !spec.coverArt.ok && (spec.coverArt.tries || 0) < 2; }
+async function makeCover(prod) {
+  const sharp = require("sharp"), spec = prod.spec, c = spec.coverArt;
+  const style = spec.category === "kids" || spec.category === "party" ? "cute, bright, friendly children's book" : spec.category === "coloring" ? "elegant detailed line-and-watercolor" : "soft modern watercolor";
+  const { png, model } = await O.image("A " + style + " illustration for the cover of a printable called \"" + spec.title + "\": " + (c.subject || spec.title) + ". One centered subject on a plain pure white background, no text, no letters, no border, no watermark.", { size: "1024x1024", quality: "medium" });
+  const full = await O.removeWhite(png), thumb = await sharp(full).resize(600, 600, { fit: "inside" }).png().toBuffer();
+  const v = Date.now() % 100000, file = "art/" + prod.id + "/cover-" + v + ".png";
+  await put(file, thumb, "image/png");
+  return { file, thumb, model };
+}
+
 // ---------- one timed run ----------
 const MIN_KEEP = { clipart: 8, stickers: 8, sublimation: 1, labels: 1 };
 async function work(prod, deadline, note) {
@@ -95,6 +107,13 @@ async function work(prod, deadline, note) {
     if (status !== "building") await note(status === "review" ? "built" : "error", (status === "review" ? "Art Studio finished \"" : "Art Studio set aside \"") + spec.title + "\": " + ok + " pictures kept" + (status === "review" ? ", now waiting for the quality check." : " (not enough good ones)."));
     return { product: prod.id, made: good.length, kept: good.filter(x => x.it.ok).length, left, status, capHit };
   }
+  // page products: the cover illustration first
+  if (needsCover(spec)) {
+    spec.coverArt.tries = (spec.coverArt.tries || 0) + 1;
+    try { const m = await makeCover(prod), sc = (await review(spec, [{ it: { subject: "a cover illustration of " + (spec.coverArt.subject || spec.title) }, thumb: m.thumb }]))[0];
+      spec.coverArt.score = sc.score; if (sc.score >= 7) { spec.coverArt.ok = true; spec.coverArt.file = m.file; spec.coverArt.by = m.model; } }
+    catch (e) { spec.coverArt.error = String(e.message).slice(0, 120); }
+  }
   // coloring books
   const jobs = coloringJobs(spec), batch = jobs.slice(0, 6);
   const drawn = await pool(batch, 3, j => Date.now() < deadline - 60000 ? drawColoring(prod, j) : Promise.reject(new Error("out of time")));
@@ -111,19 +130,20 @@ async function work(prod, deadline, note) {
       } else if (j.sj.tries >= 2) j.sj.dropped = true;
     }
   }
-  const left = coloringJobs(spec).length;
+  const left = coloringJobs(spec).length + (needsCover(spec) ? 1 : 0);
   let status = "building";
   if (!left) {
     (spec.pages || []).forEach(pg => { if (pg.template === "coloring" && pg.subjects) pg.subjects = pg.subjects.filter(sj => sj.art); });
     spec.pages = (spec.pages || []).filter(pg => pg.template !== "coloring" || (pg.subjects ? pg.subjects.length : pg.art));
     const pagesLeft = (spec.pages || []).reduce((n, pg) => n + (pg.template === "coloring" ? (pg.subjects || []).length : 1), 0);
-    status = pagesLeft >= 4 ? "review" : "archived";
+    status = pagesLeft >= 4 || !coloringBook(spec) ? "review" : "archived";
     try { const B = require("../lib/design/book"); await hydrate(spec); spec.pageCount = B.build(spec).pages.length; } catch (e) {}
     await note(status === "review" ? "built" : "error", "Art Studio finished the pictures for \"" + spec.title + "\"" + (status === "review" ? ", now waiting for the quality check." : " but too few came out well; set aside."));
   }
   await db("products?id=eq." + prod.id, { method: "PATCH", body: { spec: stripHydrated(spec), status } });
   return { product: prod.id, made: good.length, left, status };
 }
+function coloringBook(spec) { return (spec.pages || []).some(pg => pg.template === "coloring") || spec.category === "coloring"; }
 function stripHydrated(spec) { return JSON.parse(JSON.stringify(spec)); } // hydrated data is non-enumerable, so it is not saved
 
 // Loads the pictures a spec needs for rendering. full=true also loads the full-size files (for downloads).
@@ -139,6 +159,7 @@ async function hydrate(spec, opts = {}) {
     });
     return spec;
   }
+  if (spec.coverArt && spec.coverArt.ok && spec.coverArt.file && !spec._cover) { try { Object.defineProperty(spec, "_cover", { value: await get(spec.coverArt.file), enumerable: false, writable: true }); } catch (e) {} }
   const refs = [];
   (spec.pages || []).forEach(pg => (pg.subjects || [pg]).forEach(sj => { if (sj.art && sj.art.ref && !sj.art._paths) refs.push(sj.art); }));
   await pool(refs, 6, async art => { const txt = (await get(art.ref)).toString(); Object.defineProperty(art, "_paths", { value: txt.split("\n").filter(Boolean), enumerable: false, writable: true }); });
@@ -146,6 +167,6 @@ async function hydrate(spec, opts = {}) {
 }
 function needsArt(spec) {
   if (spec.category === "artpack") return (spec.items || []).some(it => !it.ok);
-  return coloringJobs(spec).length > 0;
+  return coloringJobs(spec).length > 0 || needsCover(spec);
 }
 module.exports = { work, hydrate, needsArt, promptFor };

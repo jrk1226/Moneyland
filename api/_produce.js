@@ -29,6 +29,8 @@ function tidy(p) {
     let subjects = 0; const cap = p.category === "coloring" ? 40 : 16;
     p.pages.forEach(pg => { if (pg.template === "coloring") { pg.subjects = (pg.subjects || [pg]).slice(0, Math.max(0, cap - subjects)); subjects += pg.subjects.length; } });
   }
+  if (p.category !== "wallart" && p.category !== "artpack") p.coverArt = { subject: String((p.coverArt && p.coverArt.subject) || p.coverSubject || p.title).slice(0, 200) };
+  delete p.coverSubject;
   const L = p.listing || {};
   L.tags = (L.tags || []).map(t => String(t).slice(0, 20)).filter(Boolean).slice(0, 13);
   L.etsyTitle = String(L.etsyTitle || p.title).slice(0, 140);

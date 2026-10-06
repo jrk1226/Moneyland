@@ -148,6 +148,7 @@ async function runJob(force) {
   try { const t = await shopText(false); done.shopText = t ? (t.applied ? "updated" : "waiting for permission") : "current"; } catch (e) { done.shopText = e.message; }
   try { done.checkups = await require("./_listingfix").runCheckups(3, note); } catch (e) { done.checkups = e.message; }
   try { done.seo = await tuneSEO(2); } catch (e) { done.seo = e.message; }
+  try { const r = await require("./_reach").run(false, note); done.reach = r ? "new report" : "current"; } catch (e) { done.reach = e.message; }
   return done;
 }
 
@@ -182,9 +183,10 @@ module.exports = async (req, res) => {
     if (body.action === "status") {
       const [st, pins, pl, log, seo] = await Promise.all([db("settings?id=eq.1"), db("pins?select=id,product_id,style,status,title,posted_at,note&order=id.desc&limit=40"), P.plink().catch(() => null),
         db("autopilot_log?select=at,text&kind=eq.marketing&order=id.desc&limit=12"), db("seo_changes?select=at,product_id,new_title,views_before,note&new_title=not.is.null&order=id.desc&limit=10")]);
-      return res.status(200).json({ shopText: (st[0] || {}).shop_text || null, pins, pinterest: { configured: P.configured(), connected: !!(pl && pl.refresh_token), username: pl && pl.username }, log, seo, shopUrl: SHOP_URL });
+      return res.status(200).json({ reach: (st[0] || {}).reach || null, shopText: (st[0] || {}).shop_text || null, pins, pinterest: { configured: P.configured(), connected: !!(pl && pl.refresh_token), username: pl && pl.username }, log, seo, shopUrl: SHOP_URL });
     }
     if (body.action === "run") return res.status(200).json(await runJob(true));
+    if (body.action === "reach.run") return res.status(200).json({ reach: await require("./_reach").run(true, note) });
     if (body.action === "shoptext.apply") return res.status(200).json(await shopText(true));
     return res.status(400).json({ error: "Unknown action." });
   } catch (e) { return res.status(500).json({ error: String(e.message || e) }); }

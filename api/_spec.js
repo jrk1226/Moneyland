@@ -9,7 +9,7 @@ const THEMES = Object.entries(TH.T).map(([k, t]) => k + " (" + t.name + ", for "
 const TEMPLATES = `You design printable digital-download products for an Etsy shop. Code does all layout, fonts, colors and drawing; you choose the content.
 
 PRODUCT JSON (PDF products):
-{"category":"kids"|"planner"|"party","theme":"<theme id>","title":"max 60 chars","subtitle":"one line, max 90 chars","pages":[page objects],"listing":{"etsyTitle":"keyword-rich, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price":number,"description":"2-3 friendly sentences for the top of the Etsy description"}}
+{"category":"kids"|"planner"|"party","theme":"<theme id>","coverSubject":"what the cover illustration shows (ChatGPT draws it), concrete, e.g. a smiling gingerbread man holding a candy cane","title":"max 60 chars","subtitle":"one line, max 90 chars","pages":[page objects],"listing":{"etsyTitle":"keyword-rich, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price":number,"description":"2-3 friendly sentences for the top of the Etsy description"}}
 Themes: ${THEMES}.
 Pick the theme that fits the season and buyer (christmas, halloween, spring for holidays; kids_bright or kids_pastel for kids; sage_boho, blush, navy, minimal, terracotta for planners; party_bright or baby_soft for parties).
 
