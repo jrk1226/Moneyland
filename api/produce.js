@@ -20,7 +20,7 @@ module.exports = async (req, res) => {
       const rows = await db("ideas?id=eq." + parseInt(body.ideaId, 10));
       idea = rows[0]; if (!idea) return res.status(404).json({ error: "Idea not found." });
       await db("ideas?id=eq." + idea.id, { method: "PATCH", body: { status: "building" } });
-      ask = "Build ONE product for this researched idea:\nTitle: " + idea.title + "\nCategory: " + idea.category + "\nWhy: " + idea.why + "\nEvidence: " + idea.evidence + (idea.price_hint ? "\nSuggested price: $" + idea.price_hint : "") + "\nPrefer a bundle of 3-8 pages if it fits the idea.";
+      ask = "Build ONE product for this researched idea:\nTitle: " + idea.title + "\nCategory: " + idea.category + (idea.buyer ? "\nBuyer: " + idea.buyer : "") + "\nWhy: " + idea.why + "\nEvidence: " + idea.evidence + (idea.price_hint ? "\nSuggested price: $" + idea.price_hint : "") + "\nPrefer a bundle of 3-8 pages if it fits the idea. It must be a printable PDF the buyer downloads instantly; no personalization by the seller.";
     } else {
       const n = Math.min(3, Math.max(1, parseInt(body.count, 10) || 3));
       ask = "Create " + n + " NEW products, ideally one from each category (kids, planner, party). Lean toward what sells.";
