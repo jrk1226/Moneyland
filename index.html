@@ -227,6 +227,23 @@ td.n.c{color:var(--amber)}
 .shoptext b{display:block;font-size:12px;opacity:.7;margin-top:6px}
 .mklist{display:grid;gap:6px;font-size:13px}.mklist div{background:rgba(255,255,255,.04);border-radius:10px;padding:7px 10px}
 .mklist small{opacity:.65;margin-right:8px}
+/* Health check lights */
+.hlight{display:inline-block;width:12px;height:12px;border-radius:50%;flex:0 0 12px;background:#5b6b84}
+.hlight.ok{background:#4ee38a;box-shadow:0 0 8px rgba(78,227,138,.7)}
+.hlight.warn{background:#ffc95a;box-shadow:0 0 8px rgba(255,201,90,.7)}
+.hlight.bad{background:#ff5c6c;box-shadow:0 0 10px rgba(255,92,108,.9);animation:hpulse 1.4s ease-in-out infinite}
+@keyframes hpulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.hlight.bad{animation:none}}
+.vital.health{cursor:pointer}.vital.health b{display:flex;align-items:center;gap:7px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;margin-top:12px}
+.hitem{display:flex;gap:10px;align-items:flex-start;padding:9px 11px;border:1px solid var(--line);background:rgba(4,10,22,.45);min-width:0}
+.hitem .hlight{margin-top:4px}.hitem b{font-family:var(--display);font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;display:block}
+.hitem .htxt{font-size:12.5px;color:var(--muted);line-height:1.35;overflow-wrap:anywhere}
+.hitem.bad{border-color:rgba(255,92,108,.55)}.hitem.warn{border-color:rgba(255,201,90,.45)}
+.studiogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.studioc{border:1px solid var(--line);background:rgba(4,10,22,.45);padding:8px;font-size:12.5px;min-width:0}
+.studioc .imgs{display:flex;gap:4px;margin-bottom:6px}.studioc img{width:50%;aspect-ratio:4/3;object-fit:cover;background:#0b1428}
+.studioc b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.studioc a{color:var(--cyan)}
 @media (max-width:560px){.bitem.wide{grid-column:span 1}}
 </style>
 <style>body{margin:0}img{max-width:100%}</style>
@@ -242,6 +259,7 @@ td.n.c{color:var(--amber)}
       <div class="vital time"><small>Local time</small><b id="vTime">06:00</b></div>
       <div class="vital coin" id="vMoneyBox"><small>Real money</small><b id="vCoins">$0.00</b></div>
       <div class="vital"><small>Items sold</small><b id="vSales">0</b></div>
+      <div class="vital health" id="vHealthBox" role="button" tabindex="0" aria-label="Health check. Go to the health panel."><small>Health</small><b><span class="hlight" id="vHealthDot"></span><span id="vHealth">Checking</span></b></div>
       <div class="vital"><small>On task</small><b id="vTask">6/6</b></div>
       <div class="vital"><small>Buzz</small><div class="seg" id="vBuzz"></div></div>
     </div>
@@ -353,6 +371,15 @@ td.n.c{color:var(--amber)}
     </div>
   </section>
 
+  <section class="shop panel" id="health">
+    <div class="shophead">
+      <div><h2 style="color:#4ee38a;text-shadow:0 0 14px rgba(78,227,138,.35)">Health Check</h2><p>Every 15 minutes Moneyland checks every room, fixes what it safely can, and shows the result here. Green is working, yellow needs watching, red is broken, gray is not set up or switched off.</p></div>
+      <div class="vitals"><div class="vital"><small>Overall</small><b style="display:flex;align-items:center;gap:7px"><span class="hlight" id="hOverallDot"></span><span id="hOverall">Checking</span></b></div><div class="vital"><small>Last check</small><b id="hAt">-</b></div><button class="foldbtn" id="btnHealthRun">Check now</button></div>
+    </div>
+    <div class="hgrid" id="hGrid"><p class="note">The first health check runs within 15 minutes of this update.</p></div>
+    <p class="note" id="hFixes"></p>
+  </section>
+
   <section class="shop panel" id="marketing">
     <div class="shophead">
       <div><h2 style="color:#ffc95a;text-shadow:0 0 14px rgba(255,201,90,.35)">Marketing Room</h2><p>Bram gets Bright Page Prints noticed: the brand, Pinterest pins for every product, the shop's Etsy text, and search tuning for listings that get few views.</p></div>
@@ -362,6 +389,9 @@ td.n.c{color:var(--amber)}
       <div class="makebar"><button id="btnMkRun" class="primary">Run marketing now</button><p class="note" id="mkNote">Runs on its own nonstop, every 10 minutes.</p></div>
       <h3 class="mkh">Brand kit</h3>
       <div class="brandgrid" id="brandGrid"></div>
+      <h3 class="mkh">Photo Studio</h3>
+      <div class="makebar"><button id="btnStudioRun">Make photos and video now</button><p class="note" id="stNote">Every 15 minutes the studio gives one live listing a 12-second video and, once the picture AI key is added, two realistic lifestyle photos made around the real pages.</p></div>
+      <div class="studiogrid" id="studioGrid"></div>
       <h3 class="mkh">Pinterest</h3>
       <div class="etsybar"><span class="etsydot" id="pinDot"></span><span id="pinText">Pinterest: checking...</span><button id="btnPin" hidden>Connect Pinterest</button></div>
       <div class="pingrid" id="pinGrid"></div>
@@ -1345,7 +1375,7 @@ async function api(path,body){
 }
 async function refresh(){
   if(MODE!=="db") return;
-  try{ const d=await api("/api/data"); SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; SETTINGS=d.settings; AUTOLOG=d.autolog||[]; renderShopBoard(); renderLab(); renderAuto(); renderRooms(); }
+  try{ const d=await api("/api/data"); SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; SETTINGS=d.settings; AUTOLOG=d.autolog||[]; renderShopBoard(); renderLab(); renderAuto(); renderRooms(); renderHealth(); }
   catch(e){ $("labNote").textContent=e.message||"Couldn't reach the database."; }
 }
 async function startData(){
@@ -1355,7 +1385,7 @@ async function startData(){
       else if(d.code==="needs_code") showCode(); }
     else { SHOP=loadLocal(); $("labNote").textContent="The Research Room runs once the Moneyland database key is added in Vercel."; }
   }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Room and daily research run on the Moneyland website. This copy keeps products in this browser."; }
-  renderShopBoard(); renderLab(); etsyStatus(); renderAuto(); renderRooms();
+  renderShopBoard(); renderLab(); etsyStatus(); renderAuto(); renderRooms(); renderHealth();
   if(MODE==="db") setInterval(refresh,60000);
   if(MODE==="db" && !$("mkBody").hidden) loadMarketing();
 }
@@ -1526,7 +1556,7 @@ const ROOMS=[
   {k:"market", real:"publish_on",  desc:"Publishes products to your Etsy shop"},
   {k:"ledger", real:"sales_on",    desc:"Counts real Etsy sales every 10 minutes"},
   {k:"square", real:"marketing_on", desc:"Pinterest pins, shop text and search tuning"},
-  {k:"studio", real:null, desc:"Designers' workshop (animation only)"},
+  {k:"studio", real:"studio_on", desc:"Lifestyle photos and listing videos"},
   {k:"cafe",   real:null, desc:"Where residents take breaks (animation only)"},
   {k:"homes",  real:null, desc:"Where residents recharge (animation only)"},
 ];
@@ -1617,7 +1647,7 @@ function renderMarketing(){
   $("mkLog").innerHTML=""; (MK.log||[]).forEach(x=>{ const d=document.createElement("div"); d.innerHTML='<small></small><span></span>'; d.querySelector("small").textContent=ago(x.at); d.querySelector("span").textContent=x.text; $("mkLog").appendChild(d); });
   if(!(MK.log||[]).length) $("mkLog").innerHTML='<p class="note">Nothing yet. The first run makes pins and writes the shop text.</p>';
 }
-async function loadMarketing(){ if(MODE!=="db"){ renderMarketing(); return; } try{ MK=await api("/api/marketing",{action:"status"}); }catch(e){} renderMarketing(); }
+async function loadMarketing(){ if(MODE!=="db"){ renderMarketing(); return; } try{ MK=await api("/api/marketing",{action:"status"}); }catch(e){} renderMarketing(); loadStudio(); }
 $("btnMkRun").addEventListener("click",async()=>{ const b=$("btnMkRun"); b.disabled=true; b.textContent="Marketing..."; $("mkNote").textContent="Making pins, writing shop text and checking slow listings. This can take a minute or two.";
   try{ const d=await api("/api/marketing",{action:"run"}); $("mkNote").textContent="Done. "+(d.pinsMade?d.pinsMade+" new pins. ":"")+(d.shopText?"Shop text: "+d.shopText+". ":"")+(d.seo?d.seo+" listings tuned.":""); log("Marketing Room ran","core"); const br=V.find(v=>v.id==="bram"); if(br) say(br,"Fresh pins and shop text are ready.",4000); }
   catch(e){ $("mkNote").textContent=e.message||"Marketing run failed."; } finally{ b.disabled=false; b.textContent="Run marketing now"; loadMarketing(); } });
@@ -1626,6 +1656,40 @@ $("btnPin").addEventListener("click",()=>{ window.location.href=mkURL("do=pconne
 $("btnReEtsy").addEventListener("click",()=>{ window.location.href="/api/etsy?do=connect&code="+encodeURIComponent(accessCode||""); });
 (function(){ const m=new URLSearchParams(location.search).get("pinterest"); if(m){ setTimeout(()=>{ $("mkNote").textContent= m==="connected"?"Pinterest is connected.":m; },300); history.replaceState(null,"",location.pathname+"#marketing"); } })();
 setInterval(()=>{ if(!$("mkBody").hidden) loadMarketing(); },300000);
+/* ---------- Health check ---------- */
+const HWORD={ok:"All good",warn:"Watch",bad:"Problem",off:"Off"};
+function renderHealth(){
+  const h=(typeof SETTINGS!=="undefined"&&SETTINGS&&SETTINGS.health)||null;
+  const dot=$("vHealthDot"), word=$("vHealth");
+  if(!h){ dot.className="hlight"; word.textContent=MODE==="db"?"Waiting":"Off"; return; }
+  const stale=Date.now()-new Date(h.at).getTime()>40*60000, overall=stale?"bad":h.overall;
+  dot.className="hlight "+overall; word.textContent=stale?"Checker stopped":HWORD[overall]||overall;
+  $("hOverallDot").className="hlight "+overall; $("hOverall").textContent=word.textContent; $("hAt").textContent=ago(h.at);
+  const g=$("hGrid"); g.innerHTML="";
+  const order={bad:0,warn:1,ok:2,off:3};
+  (h.checks||[]).slice().sort((a,b)=>order[a.state]-order[b.state]).forEach(c=>{ const d=document.createElement("div"); d.className="hitem "+c.state;
+    d.innerHTML='<span class="hlight '+c.state+'" aria-hidden="true"></span><div><b></b><span class="htxt"></span></div>'; d.querySelector("b").textContent=c.name+" - "+(HWORD[c.state]||c.state); d.querySelector(".htxt").textContent=c.text; g.appendChild(d); });
+  $("hFixes").textContent=(h.fixes||[]).length?"Fixed on its own last check: "+h.fixes.join(" "):"";
+}
+$("vHealthBox").addEventListener("click",()=>$("health").scrollIntoView({behavior:"smooth"}));
+$("vHealthBox").addEventListener("keydown",e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); $("health").scrollIntoView({behavior:"smooth"}); } });
+$("btnHealthRun").addEventListener("click",async()=>{ const b=$("btnHealthRun"); b.disabled=true; b.textContent="Checking...";
+  try{ const h=await api("/api/health",{action:"run"}); if(SETTINGS){ SETTINGS.health=h; } renderHealth(); }catch(e){ $("hFixes").textContent=e.message||"Check failed."; } finally{ b.disabled=false; b.textContent="Check now"; } });
+/* ---------- Photo Studio ---------- */
+async function loadStudio(){ if(MODE!=="db") return; let d; try{ d=await api("/api/studio",{action:"status"}); }catch(e){ return; }
+  const g=$("studioGrid"); g.innerHTML="";
+  const done=d.live.filter(x=>x.video).length;
+  $("stNote").textContent=done+" of "+d.live.length+" live listings have a video. "+(d.picturesKey?d.live.filter(x=>x.photos.length).length+" have lifestyle photos ("+d.scenes.good+" backgrounds in the library).":"Lifestyle photos start once OPENAI_API_KEY is added in Vercel.");
+  d.live.forEach(x=>{ const c=document.createElement("div"); c.className="studioc";
+    c.innerHTML=(x.photos.length?'<div class="imgs"></div>':'')+'<b></b><span></span>';
+    x.photos.slice(0,2).forEach(u=>{ const i=document.createElement("img"); i.loading="lazy"; i.alt="Lifestyle photo"; i.src=u; c.querySelector(".imgs").appendChild(i); });
+    c.querySelector("b").textContent=x.title; const s=c.querySelector("span");
+    if(x.videoUrl){ s.innerHTML='Video on Etsy. <a target="_blank" rel="noopener">Watch</a>'; s.querySelector("a").href=x.videoUrl; } else s.textContent=x.video?"Video on Etsy.":"Waiting for the studio.";
+    g.appendChild(c); });
+  if(!d.live.length) g.innerHTML='<p class="note">Listings show here once they are live on Etsy.</p>';
+}
+$("btnStudioRun").addEventListener("click",async()=>{ const b=$("btnStudioRun"); b.disabled=true; b.textContent="Working..."; $("stNote").textContent="Making photos and a video for the next listing. This takes 1 to 4 minutes.";
+  try{ const d=await api("/api/studio",{action:"run"}); $("stNote").textContent=d.idle?"Nothing to do: every live listing has its photos and video.":"Done with one listing."; }catch(e){ $("stNote").textContent=e.message||"Studio run failed."; } finally{ b.disabled=false; b.textContent="Make photos and video now"; loadStudio(); } });
 /* ---------- boot ---------- */
 placeAtHome(); resize();
 if(!S.log.length) log("Moneyland comes online. Day 1 begins.","big");

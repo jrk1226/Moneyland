@@ -34,6 +34,13 @@
     },
     "api/pinterest-callback.js": {
       "maxDuration": 30
+    },
+    "api/studio.js": {
+      "maxDuration": 300,
+      "includeFiles": "{lib/design/fonts/*.ttf,node_modules/pdfkit/js/data/*.afm,node_modules/pdfkit/js/data/*.icc,node_modules/ffmpeg-static/ffmpeg}"
+    },
+    "api/health.js": {
+      "maxDuration": 120
     }
   },
   "crons": [
@@ -52,6 +59,14 @@
     {
       "path": "/api/marketing?do=cron",
       "schedule": "5-59/10 * * * *"
+    },
+    {
+      "path": "/api/studio",
+      "schedule": "7-59/15 * * * *"
+    },
+    {
+      "path": "/api/health",
+      "schedule": "3-59/15 * * * *"
     }
   ]
 }
