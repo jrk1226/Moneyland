@@ -55,7 +55,7 @@ button:disabled{opacity:.5;cursor:default}
 .main{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:12px;align-items:start}
 @media (max-width:1000px){.main{grid-template-columns:minmax(0,1fr)}}
 .stage{padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.mapbox{position:relative;width:100%;aspect-ratio:1000/640;overflow:hidden;background:#050913;border:1px solid var(--line)}
+.mapbox{position:relative;width:100%;aspect-ratio:1320/640;overflow:hidden;background:#050913;border:1px solid var(--line)}
 canvas{display:block;width:100%;height:100%;cursor:crosshair}
 .ai{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:4px 4px 2px}
 .ai p{margin:0;color:var(--muted);font-size:13px;flex:1 1 260px;min-width:0}
@@ -153,6 +153,19 @@ td.n.c{color:var(--amber)}
 .pmclose{position:absolute;top:14px;right:14px}
 .salesn{font-family:var(--mono);font-size:18px;color:var(--amber);min-width:30px;text-align:center}
 .good{background:linear-gradient(90deg,#2ee6a6,#46e3ff)!important;color:#04101c!important;border-color:transparent!important}
+.pager{justify-content:center;margin-top:8px}
+.labsum{margin:0;padding:10px 12px;border-left:3px solid #a6ff5c;background:rgba(166,255,92,.06);font-size:13.5px}
+.labsum:empty{display:none}
+.ideas{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.idea{border:1px solid var(--line);background:rgba(4,10,22,.45);padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.ihead{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.ihead b{font-family:var(--display);font-size:15px;letter-spacing:.02em;flex:1 1 160px}
+.ihead .chip{margin-left:0}
+.iscore{font-family:var(--mono);font-size:12px;color:var(--amber)}
+.iwhy{margin:0;font-size:13px}
+.iev{margin:0;font-size:12px;color:var(--muted)}
+.isrc{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:11.5px}
+.isrc a{color:var(--cyan)}
 .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;color:var(--muted);font-size:12px;font-family:var(--mono)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
@@ -234,9 +247,20 @@ td.n.c{color:var(--amber)}
     </aside>
   </div>
 
+  <section class="shop panel" id="lab">
+    <div class="shophead">
+      <div><h2 style="color:#a6ff5c;text-shadow:0 0 14px rgba(166,255,92,.35)">Research Lab</h2><p>Juno researches Etsy every morning and brings you product ideas. Tap Build it and Production makes the product.</p></div>
+      <div class="vitals"><div class="vital"><small>New ideas</small><b id="sIdeas">0</b></div></div>
+    </div>
+    <div class="makebar"><button id="btnResearch" class="primary">Run research now</button><p class="note" id="labRun"></p></div>
+    <p class="labsum" id="labSummary"></p>
+    <p class="note" id="labNote"></p>
+    <div class="ideas" id="ideaList"></div>
+  </section>
+
   <section class="shop panel" id="shop">
     <div class="shophead">
-      <div><h2>Real shop</h2><p>Real printables to sell on Etsy: kids, planners and trackers, party. Nothing goes live until you approve it.</p></div>
+      <div><h2>Etsy Production</h2><p>Pax and the designers build real printables for your Etsy shop. Nothing goes live until you approve it.</p></div>
       <div class="vitals">
         <div class="vital"><small>Needs your OK</small><b id="sReview">0</b></div>
         <div class="vital"><small>Ready to list</small><b id="sReady">0</b></div>
@@ -244,7 +268,7 @@ td.n.c{color:var(--amber)}
         <div class="vital coin"><small>Real sales</small><b id="sMoney">$0.00</b></div>
       </div>
     </div>
-    <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to see it full size, approve it, download the PDF and copy its Etsy listing.</p></div>
+    <div class="makebar"><button id="btnMake" class="primary">Core: make 3 new products</button><p class="note" id="makeNote">Tap a product to page through it, approve it, then download the PDF and listing photo and copy its Etsy listing.</p></div>
     <div class="board">
       <div class="bcol"><h3>1. Needs your OK</h3><div class="bcards" id="colReview"></div></div>
       <div class="bcol"><h3>2. Ready to list on Etsy</h3><div class="bcards" id="colReady"></div></div>
@@ -254,13 +278,13 @@ td.n.c{color:var(--amber)}
 
   <div class="pmodal" id="pmodal" hidden role="dialog" aria-modal="true" aria-labelledby="pmTitle">
     <div class="pmbox">
-      <div class="pmprev" id="pmPreview"></div>
+      <div><div class="pmprev" id="pmPreview"></div><div class="pmbtns pager" id="pmPager"><button id="pmPrev">Prev</button><span class="note" id="pmPageNum"></span><button id="pmNext">Next</button></div></div>
       <div class="pmside">
         <button class="pmclose" id="pmClose">Close</button>
         <span class="pmstatus" id="pmStatus"></span>
         <h2 id="pmTitle"></h2>
-        <div class="pmbtns" id="pmReviewBtns"><button class="good" id="pmApprove">Approve</button><button id="pmReject">Reject</button><button id="pmDownload">Download PDF</button></div>
-        <div class="pmbtns" id="pmReadyBtns" hidden><button class="primary" id="pmDownload2">Download PDF</button><button class="good" id="pmListed">I listed it on Etsy</button></div>
+        <div class="pmbtns" id="pmReviewBtns"><button class="good" id="pmApprove">Approve</button><button id="pmReject">Reject</button><button id="pmDownload">Download PDF</button><button id="pmPhoto">Listing photo</button></div>
+        <div class="pmbtns" id="pmReadyBtns" hidden><button class="primary" id="pmDownload2">Download PDF</button><button id="pmPhoto2">Listing photo</button><button class="good" id="pmListed">I listed it on Etsy</button></div>
         <div class="pmbtns" id="pmLiveBtns" hidden><span class="note">Sales:</span><button id="pmSaleDown" aria-label="Remove a sale">-</button><span class="salesn" id="pmSales">0</span><button class="good" id="pmSaleUp">+ Add a sale</button><button id="pmBack">Take off Etsy</button></div>
         <label for="pmEtsyTitle">Etsy title <button data-copy="pmEtsyTitle">Copy</button></label>
         <textarea id="pmEtsyTitle" rows="2" readonly></textarea>
@@ -285,7 +309,7 @@ td.n.c{color:var(--amber)}
 <script>
 (() => {
 "use strict";
-const W = 1000, H = 640, ROADY = 320, HR = 60;
+const W = 1320, H = 640, ROADY = 320, HR = 60;
 const DAY_START = 6*HR, DAY_END = 22*HR;
 
 const BUILD = {
@@ -295,6 +319,8 @@ const BUILD = {
   cafe:   {name:"Fuel Bar",        code:"SEC-04", hue:"#9b7bff", x:70,  y:430, w:220, h:160, door:"up"},
   square: {name:"Sky Plaza",       code:"SEC-05", hue:"#46e3ff", x:390, y:420, w:220, h:180, door:"up", open:true},
   homes:  {name:"Habitat Pods",    code:"SEC-06", hue:"#3cf2c0", x:710, y:430, w:220, h:160, door:"up"},
+  prod:   {name:"Etsy Production", code:"SEC-07", hue:"#ff8a3d", x:1030, y:50, w:250, h:160, door:"down"},
+  lab:    {name:"Research Lab",    code:"SEC-08", hue:"#a6ff5c", x:1030, y:430, w:250, h:160, door:"up"},
 };
 
 const PEOPLE = [
@@ -305,7 +331,7 @@ const PEOPLE = [
   {id:"theo", name:"Theo", role:"Designer", code:"DSN-4", color:"#4f8bff", skill:0.62, lane:-6,
    style:["Synthwave","Brutalist","Glitch","Monochrome"],
    persona:"fast, confident, loves bold graphic styles; sometimes rushes things",
-   plan:[[0,9*HR,"homes","recharging"],[9*HR,13*HR,"studio","generating new designs","design"],[13*HR,14*HR,"cafe","quick refuel"],[14*HR,19*HR,"studio","generating new designs","design"],[19*HR,21*HR,"cafe","talking shop"],[21*HR,24*HR,"homes","powering down"]]},
+   plan:[[0,9*HR,"homes","recharging"],[9*HR,13*HR,"studio","generating new designs","design"],[13*HR,14*HR,"cafe","quick refuel"],[14*HR,17*HR,"prod","building Etsy products","produce"],[17*HR,19*HR,"studio","generating new designs","design"],[19*HR,21*HR,"cafe","talking shop"],[21*HR,24*HR,"homes","powering down"]]},
   {id:"iris", name:"Iris", role:"Shopkeeper", code:"MKT-2", color:"#c77dff", skill:0.7, lane:6,
    persona:"organized, friendly with buyers, careful about pricing",
    plan:[[0,8*HR,"homes","booting up"],[8*HR,12*HR,"market","running the market","shop"],[12*HR,13*HR,"cafe","refueling"],[13*HR,19*HR,"market","running the market","shop"],[19*HR,21*HR,"square","evening patrol"],[21*HR,24*HR,"homes","powering down"]]},
@@ -318,6 +344,12 @@ const PEOPLE = [
   {id:"otto", name:"Otto", role:"Fuel bar host", code:"SRV-3", color:"#b8e34a", skill:0.6, lane:12,
    persona:"calm, generous, hears all the district gossip",
    plan:[[0,6*HR+30,"homes","recharging"],[6*HR+30,21*HR,"cafe","running the fuel bar","cafe"],[21*HR,24*HR,"homes","powering down"]]},
+  {id:"juno", name:"Juno", role:"Researcher", code:"RSC-5", color:"#ffe14d", skill:0.75, lane:-24,
+   persona:"curious, data-driven, studies Etsy trends and best sellers every day and loves a good product idea",
+   plan:[[0,7*HR,"homes","recharging"],[7*HR,12*HR,"lab","scanning Etsy trends","research2"],[12*HR,13*HR,"cafe","refueling"],[13*HR,18*HR,"lab","ranking product ideas","research2"],[18*HR,20*HR,"square","listening to shoppers"],[20*HR,24*HR,"homes","powering down"]]},
+  {id:"pax", name:"Pax", role:"Production lead", code:"PRD-8", color:"#eaf2ff", skill:0.72, lane:24,
+   persona:"steady and precise, runs the Etsy production line, checks every page before it goes to Josh for approval",
+   plan:[[0,8*HR,"homes","recharging"],[8*HR,12*HR,"prod","assembling Etsy products","produce"],[12*HR,13*HR,"cafe","refueling"],[13*HR,18*HR,"prod","checking pages and listings","produce"],[18*HR,24*HR,"homes","powering down"]]},
 ];
 
 const SUBJECTS = ["Orbital Station","Neon Koi","Mars Dune","Quantum Garden","Chrome Tiger","Lunar Greenhouse","Solar Sail","Cyber Lotus","Deep Sea Colony","Aurora Grid","Robot Botanist","Hover Bike","Nebula Whale","Signal Tower","Glass Forest","Sky Tram","Ion Storm"];
@@ -337,7 +369,7 @@ function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} 
 S = load() || freshState();
 
 const V = PEOPLE.map(p=>({...p, x:0,y:0, place:"homes", dest:"homes", path:[], activity:"", work:null, progress:0, bubble:null, chatCool:0, lastListed:0, spin:Math.random()*6}));
-const CORE={id:"core", name:"Core", role:"Central brain", code:"NX-0", color:"#46e3ff", x:500, y:ROADY, bubble:null,
+const CORE={id:"core", name:"Core", role:"Central brain", code:"NX-0", color:"#46e3ff", x:660, y:ROADY, bubble:null,
   persona:"the central AI brain of the district; it watches every resident, sets daily targets, issues directives and keeps everyone on task. Calm, precise, a little stern, speaks in short clear sentences"};
 let BEAMS=[];
 function issue(v, text, ack){
@@ -442,6 +474,8 @@ function stepSim(dm){
     if(v.work==="promo"){ S.buzz=clamp(S.buzz+dm*0.0022*(0.6+v.skill)*(v.boostUntil>m?1.7:1),0,1); if(Math.random()<dm*0.01) say(v,pick(["New drops at the Holo Market!","Fresh holo prints, live now!","Best little market on the grid!","Ask Iris about the new AR filters!"])); }
     if(v.work==="research" && Math.random()<dm*0.004){ const best=bestSeller(); if(best) say(v,"Buyers keep picking "+best.name+". Logged."); }
     if(v.work==="books" && Math.floor(prev/120)!==Math.floor(m/120)) say(v,"Ledger synced: "+S.todayCoins+" credits today.");
+    if(v.work==="research2" && Math.random()<dm*0.006){ const fresh=(typeof IDEAS!=="undefined"?IDEAS:[]).filter(i=>i.status==="new"); say(v, fresh.length? "Idea for Josh: "+fresh[Math.floor(Math.random()*fresh.length)].title : pick(["Checking Etsy best sellers...","Holiday printables are heating up.","Bundles are outselling single pages.","Tracking what buyers search for."]),4200); }
+    if(v.work==="produce" && Math.random()<dm*0.006){ const q=(typeof SHOP!=="undefined"?SHOP.items:[]); const w=q.filter(i=>i.status==="review"); say(v, w.length? w.length+" products waiting for Josh's OK." : pick(["Line is clear. Ready for new ideas.","Checking page layouts.","Packing PDFs for Etsy."]),4200); }
   });
   S.buzz=clamp(S.buzz-dm*0.0006,0.05,1);
   const iris=V.find(v=>v.id==="iris");
@@ -510,7 +544,7 @@ let scale=1, T=0;
 const F={}; function font(t){ if(!F[t]) F[t]=getComputedStyle(document.documentElement).getPropertyValue(t).trim(); return F[t]; }
 function resize(){ const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1; cv.width=Math.round(r.width*dpr); cv.height=Math.round(r.height*dpr); scale=cv.width/W; }
 window.addEventListener("resize",resize);
-const PYLONS=[[30,250],[340,240],[660,240],[970,250],[30,400],[345,612],[660,612],[970,400],[335,28],[655,28],[975,28],[25,612],[350,398],[655,398]];
+const PYLONS=[[30,250],[340,240],[660,240],[995,250],[30,400],[345,612],[660,612],[995,400],[335,28],[655,28],[985,28],[25,612],[350,398],[655,398],[1300,250],[1300,400],[1300,28],[1300,612],[1155,612],[1155,28]];
 function rgba(hex,a){ const n=parseInt(hex.slice(1),16); return "rgba("+(n>>16&255)+","+(n>>8&255)+","+(n&255)+","+a+")"; }
 function chamfer(x,y,w,h,c){ ctx.beginPath(); ctx.moveTo(x+c,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+h-c); ctx.lineTo(x+w-c,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+c); ctx.closePath(); }
 function circ(x,y,r){ ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); }
@@ -622,6 +656,11 @@ function drawBuilding(k,B){
     if(k==="ledger"){ box(B.x+30,B.y+70,B.w-60,30); for(let i=0;i<8;i++){ const h=6+12*Math.abs(Math.sin(T*1.5+i)); ctx.fillStyle=rgba(c,.55); ctx.fillRect(B.x+40+i*18,B.y+130-h,10,h); } }
     if(k==="cafe"){ [[50,74],[120,74],[170,118],[64,126]].forEach(([x,y])=>{ ctx.beginPath(); ctx.arc(B.x+x,B.y+y,15,0,Math.PI*2); ctx.fill(); ctx.stroke(); }); }
     if(k==="homes"){ for(let i=0;i<5;i++){ ctx.beginPath(); ctx.roundRect?ctx.roundRect(B.x+18+i*40,B.y+48,30,56,14):ctx.rect(B.x+18+i*40,B.y+48,30,56); ctx.fill(); ctx.stroke(); } }
+    if(k==="prod"){ box(B.x+20,B.y+104,B.w-40,14); for(let i=0;i<5;i++){ const px=B.x+24+((T*30+i*44)%(B.w-60)); ctx.fillStyle="rgba(255,255,255,.85)"; ctx.fillRect(px,B.y+92,16,20); ctx.fillStyle=rgba(c,.8); ctx.fillRect(px+3,B.y+96,10,2); ctx.fillRect(px+3,B.y+101,7,2); }
+      ctx.fillStyle=rgba(c,.08); const w2=(typeof SHOP!=="undefined")?SHOP.items.filter(i=>i.status==="review").length:0; ctx.fillStyle=rgba(c,.9); ctx.font="600 11px "+font("--mono"); ctx.fillText(w2+" waiting for your OK",B.x+16,B.y+138); }
+    if(k==="lab"){ const cx=B.x+B.w-60, cy=B.y+92; ctx.strokeStyle=rgba(c,.5); circ(cx,cy,30); ctx.stroke(); circ(cx,cy,18); ctx.stroke();
+      ctx.save(); ctx.translate(cx,cy); ctx.rotate(T*1.8); const gr=ctx.createLinearGradient(0,0,30,0); gr.addColorStop(0,rgba(c,.0)); gr.addColorStop(1,rgba(c,.7)); ctx.fillStyle=gr; ctx.beginPath(); ctx.moveTo(0,0); ctx.arc(0,0,30,-0.5,0); ctx.closePath(); ctx.fill(); ctx.restore();
+      const n2=(typeof IDEAS!=="undefined")?IDEAS.filter(i=>i.status==="new").length:0; ctx.fillStyle=rgba(c,.9); ctx.font="600 11px "+font("--mono"); ctx.fillText(n2+" new ideas for Josh",B.x+16,B.y+138); }
   }
   ctx.fillStyle=rgba(c,.95); ctx.font="700 13px "+font("--display"); ctx.textAlign="left"; ctx.textBaseline="top";
   ctx.fillText(B.name.toUpperCase(), B.x+16, B.y+12);
@@ -732,8 +771,9 @@ function aiOff(code){ $("btnPlan").hidden=true; $("talkForm").hidden=true;
   $("aiNote").textContent= code?errCopy(code):"Residents run on their own. AI planning and conversations work when this page is opened in Claude.";
   $("talkNote").textContent="Conversations need AI, which isn't available here."; }
 function stateSummary(){
+  const real=(typeof SHOP!=="undefined")?"\nReal Etsy shop: "+SHOP.items.filter(i=>i.status==="review").length+" products waiting for Josh's approval, "+SHOP.items.filter(i=>i.status==="listed").length+" live on Etsy. Newest research ideas: "+((typeof IDEAS!=="undefined"?IDEAS:[]).filter(i=>i.status==="new").slice(0,5).map(i=>i.title).join("; ")||"none yet")+".":"";
   const top=S.products.filter(p=>p.listed).sort((a,b)=>b.sold-a.sold).slice(0,12).map(p=>p.name+" by "+p.maker+", "+p.price+" credits, sold "+p.sold+", quality "+p.quality).join("\n");
-  return "Day "+S.day+", "+fmtTime(S.minute)+". Total credits: "+S.coins+". Sold today: "+S.todaySales+". Buzz: "+Math.round(S.buzz*100)+"%. Products listed: "+S.products.filter(p=>p.listed).length+".\nTop products:\n"+(top||"none yet")+"\nRecent days: "+(S.history.slice(-5).map(h=>"day "+h.day+" "+h.coins+" credits").join(", ")||"none");
+  return "Day "+S.day+", "+fmtTime(S.minute)+". Total credits: "+S.coins+". Sold today: "+S.todaySales+". Buzz: "+Math.round(S.buzz*100)+"%. Products listed: "+S.products.filter(p=>p.listed).length+".\nTop products:\n"+(top||"none yet")+"\nRecent days: "+(S.history.slice(-5).map(h=>"day "+h.day+" "+h.coins+" credits").join(", ")||"none")+real;
 }
 function who(id){ return id==="core"?CORE:V.find(x=>x.id===id); }
 function selectVillager(id){
@@ -773,12 +813,150 @@ $("btnPlan").addEventListener("click", async ()=>{
   finally{ btn.disabled=false; btn.textContent="Core: plan with AI"; }
 });
 
-/* ================= REAL SHOP: printable products (kids, planners & trackers, party) ================= */
+/* ---------- the 15 starter products picked from the Etsy research ---------- */
+const DAYS=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+const SEEDS=[
+ {category:"kids",template:"bundle",accent:"red",title:"Kids Christmas Activity Pack",subtitle:"Math, word games, a Santa letter, countdown and more for the holiday season",
+  pages:[
+   {template:"math",title:"Christmas Addition",subtitle:"Add the numbers. Ho ho ho!",op:"+",min:0,max:10,count:20},
+   {template:"math",title:"Christmas Subtraction",subtitle:"Take away to find the answer.",op:"-",min:0,max:12,count:20,accent:"green"},
+   {template:"tracing",title:"Trace Christmas Words",subtitle:"Trace the gray words, then write your own.",words:["tree","star","snow","gift","bell","elf"],accent:"green"},
+   {template:"scramble",title:"Christmas Word Scramble",subtitle:"Unscramble each Christmas word.",words:["reindeer","snowman","cookies","stocking","sleigh","presents","ornament","mittens","chimney","holly"]},
+   {template:"letter",title:"My Letter to Santa",subtitle:"Write your letter, then mail it to the North Pole!",prompts:["Dear Santa,","My name is _____________ and I am ____ years old.","This year I was kind when I","For Christmas I would love","Thank you, Santa!"],lines:12},
+   {template:"reward",title:"Christmas Countdown",subtitle:"Color one circle each day in December!",spots:25,goal:"",prizeLabel:"When all 25 are colored, it's Christmas!",accent:"green"},
+   {template:"chart",title:"Good Helper Chart",subtitle:"Earn a check for every kind thing you do.",rowHead:"Helper job",rows:["Helped set the table","Cleaned up my toys","Was kind to others","Brushed my teeth","Listened the first time","Helped decorate"],columns:DAYS,footer:"Checks this week: ______"},
+   {template:"certificate",title:"Official Nice List",subtitle:"This certifies that",body:"has been very good this year and is officially on the Nice List.",signLabel:"Head Elf"},
+   {template:"bingo",title:"Christmas Bingo",subtitle:"Mark each word you see or hear!",cards:2,words:["tree","star","snow","gift","bell","elf","sleigh","reindeer","cookie","candle","wreath","mitten","scarf","angel","carol","stocking","snowman","holly","candy cane","ornament","present","chimney","lights","cocoa","ribbon","bow"]}],
+  listing:{etsyTitle:"Kids Christmas Activity Pack, Printable Christmas Worksheets, Santa Letter, Countdown, Bingo, Word Scramble, Holiday Activities PDF",
+   tags:["christmas activity","kids christmas","christmas printable","letter to santa","christmas bingo","word scramble","christmas worksheet","holiday activities","advent countdown","nice list","classroom christmas","homeschool","christmas games"],price:7}},
+ {category:"planner",template:"bundle",accent:"green",title:"Holiday Budget and Gift Planner",subtitle:"Plan every gift, card, meal and dollar this Christmas",
+  pages:[
+   {template:"table",title:"Christmas Gift List",subtitle:"Track every gift from idea to wrapped.",columns:["Name","Gift idea","Budget","Spent","Bought","Wrapped"],rows:18},
+   {template:"table",title:"Holiday Budget",subtitle:"Set a budget for each category and track what you spend.",fields:"Total holiday budget: $____________",columns:["Category","Budget","Actual","Difference"],rows:14,rowLabels:["Gifts","Food and drinks","Decorations","Cards and postage","Wrapping","Travel","Parties","Donations"],totalRow:true},
+   {template:"table",title:"Christmas Card List",subtitle:"Who to send to and who sent one back.",columns:["Name","Address","Sent","Received"],rows:20},
+   {template:"planner",title:"Holiday Meal Planner",subtitle:"Menu, shopping and prep in one place.",fields:"Event: ______________________   Date: ______________   Guests: _____",sections:[{head:"Menu",kind:"lines",count:6,wide:true},{head:"Shopping list",kind:"checks",count:12},{head:"Prep timeline",kind:"lines",count:12}]},
+   {template:"planner",title:"Holiday To-Do List",subtitle:"Get everything done before the big day.",sections:[{head:"This week",kind:"checks",count:10},{head:"Next week",kind:"checks",count:10},{head:"Before guests arrive",kind:"checks",count:8,wide:true}]}],
+  listing:{etsyTitle:"Holiday Budget and Christmas Gift Planner, Printable Gift List, Christmas Card Tracker, Holiday Meal Planner PDF",
+   tags:["christmas planner","gift list","holiday budget","christmas budget","gift tracker","card list","holiday planner","meal planner","christmas list","printable planner","holiday organizer","budget printable","pdf planner"],price:8}},
+ {category:"kids",template:"reward",accent:"red",title:"Christmas Countdown Chart",subtitle:"Color one circle each day until Christmas!",spots:25,goal:"",prizeLabel:"When all 25 are colored, it's Christmas!",
+  listing:{etsyTitle:"Christmas Countdown Chart for Kids, Printable 25 Day Advent Countdown, December Calendar, Kids Holiday Printable PDF",
+   tags:["christmas countdown","advent calendar","kids countdown","december countdown","christmas printable","25 days","kids christmas","holiday printable","advent printable","countdown chart","classroom","toddler christmas","pdf printable"],price:3}},
+ {category:"kids",template:"bundle",accent:"red",title:"Letter to Santa and Nice List Certificate",subtitle:"A letter to write and a certificate to frame",
+  pages:[
+   {template:"letter",title:"My Letter to Santa",subtitle:"Write your letter, then mail it to the North Pole!",prompts:["Dear Santa,","My name is _____________ and I am ____ years old.","This year I was kind when I","For Christmas I would love","Thank you, Santa!"],lines:12},
+   {template:"certificate",title:"Official Nice List",subtitle:"This certifies that",body:"has been very good this year and is officially on the Nice List.",signLabel:"Head Elf"}],
+  listing:{etsyTitle:"Letter to Santa and Nice List Certificate, Printable Christmas Letter for Kids, Santa Certificate, Instant Download PDF",
+   tags:["letter to santa","nice list","santa certificate","christmas letter","kids christmas","dear santa","christmas printable","santa letter","north pole","holiday printable","christmas eve box","kids activity","pdf printable"],price:4}},
+ {category:"planner",template:"bundle",accent:"navy",title:"2027 Goals and Habit Planner",subtitle:"Set your goals, build habits and review your progress all year",
+  pages:[
+   {template:"planner",title:"My 2027 Goals",subtitle:"Big picture first. Then the first steps.",sections:[{head:"My word for 2027",kind:"lines",count:2,wide:true},{head:"Top goals",kind:"checks",count:8},{head:"Why they matter",kind:"lines",count:8},{head:"First steps",kind:"checks",count:6,wide:true}]},
+   {template:"planner",title:"Monthly Goals",subtitle:"One page for each month.",fields:"Month: ______________________",sections:[{head:"Focus this month",kind:"lines",count:3,wide:true},{head:"Goals",kind:"checks",count:8},{head:"Habits to build",kind:"checks",count:8},{head:"Wins",kind:"lines",count:6},{head:"Lessons",kind:"lines",count:6}]},
+   {template:"chart",title:"Weekly Habit Tracker",subtitle:"Track up to 10 habits. Small steps add up.",rowHead:"Habit",rows:["","","","","","","","","",""],columns:DAYS,fields:"Week of: ______________________"},
+   {template:"table",title:"Bucket List",subtitle:"Dream big. Check them off.",columns:["Dream","Why","By when","Done"],rows:18},
+   {template:"planner",title:"Quarterly Review",subtitle:"Look back, then plan ahead.",fields:"Quarter: ____   Dates: ______________",sections:[{head:"What went well",kind:"lines",count:6},{head:"What to change",kind:"lines",count:6},{head:"Goals for next quarter",kind:"checks",count:6,wide:true}]}],
+  listing:{etsyTitle:"2027 Goal Planner Printable, New Year Goals Worksheet, Habit Tracker, Bucket List, Quarterly Review, Goal Setting PDF",
+   tags:["2027 planner","goal planner","new year goals","goal setting","habit tracker","bucket list","vision planner","new year","resolutions","productivity","printable planner","self improvement","pdf planner"],price:10}},
+ {category:"planner",template:"bundle",accent:"navy",title:"Budget Planner Bundle",subtitle:"Budget, expenses, bills, savings and debt payoff in one set",
+  pages:[
+   {template:"planner",title:"Monthly Budget",subtitle:"Plan your month before it starts.",fields:"Month: ______________   Income: $____________",sections:[{head:"Income",kind:"lines",count:4},{head:"Savings goals",kind:"checks",count:4},{head:"Fixed bills",kind:"lines",count:8},{head:"Variable spending",kind:"lines",count:8},{head:"Notes",kind:"lines",count:4,wide:true}]},
+   {template:"table",title:"Expense Tracker",subtitle:"Write down every expense.",columns:["Date","Description","Category","Amount"],rows:22,totalRow:true},
+   {template:"table",title:"Bill Tracker",subtitle:"Never miss a due date.",columns:["Bill","Due date","Amount","Paid","Notes"],rows:16},
+   {template:"table",title:"Savings Tracker",subtitle:"Watch your savings grow.",fields:"Saving for: ______________________   Goal: $____________",columns:["Date","Deposit","Total saved","Left to goal"],rows:18},
+   {template:"table",title:"Debt Payoff Tracker",subtitle:"Every payment gets you closer.",fields:"Debt: ______________   Starting balance: $__________   Rate: _____%",columns:["Date","Payment","Balance","Notes"],rows:18}],
+  listing:{etsyTitle:"Budget Planner Bundle Printable, Monthly Budget, Expense Tracker, Bill Tracker, Savings Tracker, Debt Payoff PDF",
+   tags:["budget planner","budget printable","expense tracker","bill tracker","savings tracker","debt payoff","monthly budget","finance planner","money planner","budget bundle","personal finance","budget sheets","pdf planner"],price:10}},
+ {category:"planner",template:"bundle",accent:"sage",title:"Meal Planner Bundle",subtitle:"Weekly meal plan, grocery list and recipe cards",
+  pages:[
+   {template:"table",title:"Weekly Meal Plan",subtitle:"Plan the week, shop once.",fields:"Week of: ______________________",columns:["Day","Breakfast","Lunch","Dinner","Snacks"],rows:8,rowLabels:["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]},
+   {template:"planner",title:"Grocery List",subtitle:"Check items off as you shop.",sections:[{head:"Produce",kind:"checks",count:9},{head:"Meat and fish",kind:"checks",count:9},{head:"Dairy and eggs",kind:"checks",count:7},{head:"Pantry",kind:"checks",count:7},{head:"Frozen",kind:"checks",count:5},{head:"Other",kind:"checks",count:5}]},
+   {template:"planner",title:"Recipe Card",subtitle:"Save your favorite recipes.",fields:"Serves: _____   Prep time: _______   Cook time: _______",sections:[{head:"Ingredients",kind:"checks",count:12},{head:"Steps",kind:"lines",count:12},{head:"Notes",kind:"lines",count:4,wide:true}]}],
+  listing:{etsyTitle:"Meal Planner Printable Bundle, Weekly Meal Plan, Grocery List, Recipe Card, Family Menu Planner PDF",
+   tags:["meal planner","grocery list","recipe card","weekly menu","meal plan","food planner","family planner","kitchen printable","shopping list","menu planner","meal prep","printable planner","pdf planner"],price:6}},
+ {category:"planner",template:"bundle",accent:"teal",title:"Cleaning Schedule Bundle",subtitle:"Daily, weekly and monthly cleaning made simple",
+  pages:[
+   {template:"chart",title:"Daily Cleaning Checklist",subtitle:"A few minutes a day keeps the house tidy.",rowHead:"Task",rows:["Make the beds","Wash the dishes","Wipe kitchen counters","Quick bathroom wipe","Sweep the kitchen","Take out trash","Ten minute tidy"],columns:DAYS,fields:"Week of: ______________________"},
+   {template:"chart",title:"Weekly Cleaning Schedule",subtitle:"One room a day, all month long.",rowHead:"Task",rows:["Vacuum all floors","Mop floors","Clean bathrooms","Change bed sheets","Dust surfaces","Clean mirrors","Laundry","Wipe appliances"],columns:["Week 1","Week 2","Week 3","Week 4"],fields:"Month: ______________________"},
+   {template:"table",title:"Monthly Deep Clean",subtitle:"The jobs that only need doing once a month.",columns:["Task","Room","Date done","Notes"],rows:16,rowLabels:["Clean the oven","Clean the fridge","Wash windows","Dust ceiling fans","Wipe baseboards","Clean light switches","Wash shower curtain","Vacuum furniture","Clean the microwave","Declutter one drawer"]}],
+  listing:{etsyTitle:"Cleaning Schedule Printable Bundle, Daily Cleaning Checklist, Weekly Chore Chart, Monthly Deep Clean List PDF",
+   tags:["cleaning schedule","cleaning checklist","chore chart","house cleaning","cleaning planner","weekly cleaning","deep clean","home organization","household chores","cleaning routine","adhd cleaning","printable checklist","pdf planner"],price:5}},
+ {category:"planner",template:"bundle",accent:"sage",title:"Habit and Wellness Tracker Pack",subtitle:"Habits, water, sleep, mood and workouts",
+  pages:[
+   {template:"chart",title:"Weekly Habit Tracker",subtitle:"Track up to 10 habits. Small steps add up.",rowHead:"Habit",rows:["Drink 8 glasses of water","Move for 30 minutes","Read 10 pages","No phone after 10 PM","Eat a vegetable","Sleep 7+ hours","","",""],columns:DAYS,fields:"Week of: ______________________"},
+   {template:"chart",title:"Water Tracker",subtitle:"Check a box for every glass.",rowHead:"Glass",rows:["Glass 1","Glass 2","Glass 3","Glass 4","Glass 5","Glass 6","Glass 7","Glass 8"],columns:DAYS,fields:"Week of: ______________________"},
+   {template:"table",title:"Sleep Log",subtitle:"Find your best sleep routine.",columns:["Date","Bedtime","Wake time","Hours","How I feel"],rows:16},
+   {template:"table",title:"Mood Journal",subtitle:"Notice what helps.",columns:["Date","Mood","What helped","Notes"],rows:16},
+   {template:"table",title:"Workout Log",subtitle:"Every workout counts.",columns:["Date","Workout","Minutes","Notes"],rows:18}],
+  listing:{etsyTitle:"Habit and Wellness Tracker Printable Pack, Habit Tracker, Water Tracker, Sleep Log, Mood Journal, Workout Log PDF",
+   tags:["habit tracker","wellness planner","water tracker","sleep log","mood tracker","workout log","self care","health planner","fitness tracker","daily habits","wellness printable","journal pages","pdf planner"],price:6}},
+ {category:"kids",template:"bundle",accent:"teal",title:"Kindergarten Math Practice Pack",subtitle:"10 addition and subtraction worksheets with answer keys",
+  pages:[
+   {template:"math",title:"Addition to 5: Set A",subtitle:"Add the numbers.",op:"+",min:0,max:5,count:20},
+   {template:"math",title:"Addition to 5: Set B",subtitle:"Add the numbers.",op:"+",min:0,max:5,count:20},
+   {template:"math",title:"Addition to 10: Set A",subtitle:"Add the numbers.",op:"+",min:0,max:5,count:20,accent:"blue"},
+   {template:"math",title:"Addition to 10: Set B",subtitle:"Add the numbers.",op:"+",min:1,max:5,count:20,accent:"blue"},
+   {template:"math",title:"Sums to 20",subtitle:"Add the bigger numbers.",op:"+",min:2,max:10,count:20,accent:"purple"},
+   {template:"math",title:"Subtraction within 5",subtitle:"Take away to find the answer.",op:"-",min:0,max:5,count:20,accent:"orange"},
+   {template:"math",title:"Subtraction within 10: Set A",subtitle:"Take away to find the answer.",op:"-",min:0,max:10,count:20,accent:"orange"},
+   {template:"math",title:"Subtraction within 10: Set B",subtitle:"Take away to find the answer.",op:"-",min:0,max:10,count:20,accent:"orange"},
+   {template:"math",title:"Subtraction within 20",subtitle:"Take away the bigger numbers.",op:"-",min:5,max:20,count:20,accent:"pink"},
+   {template:"math",title:"Mixed Review: Adding",subtitle:"Show what you know!",op:"+",min:0,max:10,count:20,accent:"green"}],
+  listing:{etsyTitle:"Kindergarten Math Worksheets Pack, Addition and Subtraction Practice with Answer Keys, Homeschool Math Printable PDF",
+   tags:["kindergarten math","math worksheets","addition worksheet","subtraction","homeschool math","first grade math","math practice","answer key","math facts","kids worksheets","teacher resource","preschool math","pdf worksheets"],price:6}},
+ {category:"kids",template:"bundle",accent:"purple",title:"Handwriting Tracing Pack",subtitle:"Letters, numbers and sight words to trace and practice",
+  pages:[
+   {template:"tracing",title:"Trace Letters A to F",subtitle:"Trace the gray letters, then write your own.",words:["Aa","Bb","Cc","Dd","Ee","Ff"]},
+   {template:"tracing",title:"Trace Letters G to L",subtitle:"Trace the gray letters, then write your own.",words:["Gg","Hh","Ii","Jj","Kk","Ll"]},
+   {template:"tracing",title:"Trace Letters M to R",subtitle:"Trace the gray letters, then write your own.",words:["Mm","Nn","Oo","Pp","Qq","Rr"]},
+   {template:"tracing",title:"Trace Letters S to X",subtitle:"Trace the gray letters, then write your own.",words:["Ss","Tt","Uu","Vv","Ww","Xx"]},
+   {template:"tracing",title:"Trace Letters Y and Z",subtitle:"Trace the gray letters, then write your own.",words:["Yy","Zz","Aa","Bb"]},
+   {template:"tracing",title:"Trace Numbers 0 to 5",subtitle:"Trace the gray numbers.",words:["0","1","2","3","4","5"],accent:"teal"},
+   {template:"tracing",title:"Trace Numbers 6 to 10",subtitle:"Trace the gray numbers.",words:["6","7","8","9","10"],accent:"teal"},
+   {template:"tracing",title:"Sight Words: Set 1",subtitle:"Trace each word, then write it.",words:["the","and","see","can","you","look"],accent:"orange"},
+   {template:"tracing",title:"Sight Words: Set 2",subtitle:"Trace each word, then write it.",words:["like","play","said","here","come","went"],accent:"orange"},
+   {template:"tracing",title:"Sight Words: Set 3",subtitle:"Trace each word, then write it.",words:["is","it","we","my","go","to"],accent:"orange"}],
+  listing:{etsyTitle:"Handwriting Practice Tracing Pack, ABC Letter Tracing, Number Tracing, Sight Words Worksheets, Preschool Kindergarten PDF",
+   tags:["letter tracing","handwriting practice","tracing worksheets","abc tracing","number tracing","sight words","preschool printable","kindergarten","homeschool","alphabet practice","writing practice","learn to write","pdf worksheets"],price:6}},
+ {category:"kids",template:"bundle",accent:"orange",title:"Chore Chart Bundle by Age",subtitle:"Age-right chore charts for little helpers and big kids",
+  pages:[
+   {template:"chart",title:"Little Helper Chores: Ages 3 to 5",subtitle:"Easy jobs for little hands.",rowHead:"Chore",rows:["Put toys away","Feed the pet","Put clothes in hamper","Help set the table","Water the plants","Make my bed"],columns:DAYS,fields:"Name: ______________________   Week of: ______________",footer:"Great job! Stars this week: ______"},
+   {template:"chart",title:"Chores for Ages 6 to 8",subtitle:"Check off each chore when it is done.",rowHead:"Chore",rows:["Make my bed","Clear my plate","Fold my laundry","Tidy my room","Feed the pet","Help with groceries","Wipe the table"],columns:DAYS,fields:"Name: ______________________   Week of: ______________",footer:"Chores done this week: ______",accent:"blue"},
+   {template:"chart",title:"Chores for Ages 9 to 12",subtitle:"Bigger jobs for bigger kids.",rowHead:"Chore",rows:["Load the dishwasher","Vacuum my room","Take out trash","Do my own laundry","Clean the bathroom sink","Help make dinner","Pack my lunch"],columns:DAYS,fields:"Name: ______________________   Week of: ______________",footer:"Allowance earned: $______",accent:"green"}],
+  listing:{etsyTitle:"Chore Chart Bundle by Age, Printable Kids Chore Charts for Ages 3-5, 6-8 and 9-12, Weekly Responsibility Chart PDF",
+   tags:["chore chart","kids chores","chore chart kids","responsibility chart","chores by age","toddler chores","allowance chart","family chores","kids printable","weekly chart","routine chart","parenting","pdf printable"],price:5}},
+ {category:"kids",template:"bundle",accent:"purple",title:"Reward and Behavior Chart Bundle",subtitle:"10, 20 and 30 spot sticker charts in bright colors",
+  pages:[
+   {template:"reward",title:"My 10 Star Chart",subtitle:"Fill a circle every time you reach your goal!",spots:10,goal:"______________________________"},
+   {template:"reward",title:"My 20 Star Chart",subtitle:"Fill a circle every time you reach your goal!",spots:20,goal:"______________________________",accent:"teal"},
+   {template:"reward",title:"My 30 Star Chart",subtitle:"Fill a circle every time you reach your goal!",spots:30,goal:"______________________________",accent:"orange"},
+   {template:"reward",title:"Potty Training Chart",subtitle:"A sticker for every try!",spots:20,goal:"Use the potty like a big kid",accent:"blue"},
+   {template:"reward",title:"Reading Reward Chart",subtitle:"Color a circle for every book you read!",spots:20,goal:"Read 20 books",accent:"green"}],
+  listing:{etsyTitle:"Reward Chart Bundle for Kids, Printable Sticker Charts, Behavior Chart, Potty Training Chart, Reading Chart PDF",
+   tags:["reward chart","sticker chart","behavior chart","potty training","reading chart","kids printable","incentive chart","toddler chart","classroom reward","positive behavior","parenting tool","star chart","pdf printable"],price:5}},
+ {category:"party",template:"bundle",accent:"pink",title:"Kids Birthday Party Pack",subtitle:"Welcome sign, food labels, favor tags and a scavenger hunt",
+  pages:[
+   {template:"sign",title:"Welcome to the Party",subtitle:"______________ is turning ____!",lines:["Grab a snack, find a seat","and let's celebrate!"]},
+   {template:"sign",title:"Happy Birthday",subtitle:"We love you, ______________!",lines:["Make a wish!"],accent:"purple"},
+   {template:"labels",title:"Food Labels",subtitle:"Cut out and fold. Write each food on the line.",labels:["Snacks","Treats","Drinks","Pizza","Cake","Fruit","Chips","Sweets"],blankLine:true},
+   {template:"labels",title:"Favor Tags",subtitle:"Cut out and attach to each party favor.",labels:["Thank you for coming!","Thank you for coming!","Thank you for coming!","Thank you for coming!","Thanks for celebrating!","Thanks for celebrating!","Thanks for celebrating!","Thanks for celebrating!"],blankLine:true,accent:"teal"},
+   {template:"planner",title:"Party Scavenger Hunt",subtitle:"Find each thing and check it off. First team done wins!",fields:"Team: ______________________",sections:[{head:"Find something...",kind:"checks",count:10,wide:true},{head:"Bonus finds",kind:"checks",count:5,wide:true}],accent:"orange"}],
+  listing:{etsyTitle:"Kids Birthday Party Printable Pack, Welcome Sign, Food Labels, Favor Tags, Scavenger Hunt Game, Birthday Decor PDF",
+   tags:["birthday party","party printable","welcome sign","food labels","favor tags","scavenger hunt","kids birthday","party decor","birthday sign","party games","girl birthday","boy birthday","pdf printable"],price:8}},
+ {category:"party",template:"bundle",accent:"teal",title:"Baby Shower Game Bundle",subtitle:"Bingo, word scramble, predictions and advice cards",
+  pages:[
+   {template:"bingo",title:"Baby Shower Bingo",subtitle:"Mark each gift as it is opened!",cards:4,words:["bottle","diaper","rattle","stroller","blanket","bib","onesie","socks","booties","pacifier","teddy bear","book","bath toy","lotion","wipes","hat","mittens","swaddle","crib sheet","car seat","monitor","burp cloth","toy","shampoo","sleeper","bouncer"]},
+   {template:"scramble",title:"Baby Word Scramble",subtitle:"Unscramble each baby word.",words:["bottle","diaper","rattle","stroller","blanket","cradle","pacifier","onesie","lullaby","nursery","booties","bath"]},
+   {template:"table",title:"Baby Predictions",subtitle:"Make your guesses!",columns:["Guest name","Due date","Weight","Length","Hair color"],rows:18,accent:"sage"},
+   {template:"labels",title:"Advice for the Parents",subtitle:"Cut out the cards. Guests write their best advice.",labels:["Advice for Mom","Advice for Dad","Wishes for Baby","Advice for Mom","Advice for Dad","Wishes for Baby"],blankLine:true,accent:"pink"}],
+  listing:{etsyTitle:"Baby Shower Game Bundle Printable, Baby Shower Bingo, Word Scramble, Baby Predictions, Advice Cards PDF",
+   tags:["baby shower games","baby shower","baby bingo","word scramble","baby predictions","advice cards","shower games","gender neutral","baby shower bingo","party games","shower printable","baby gift","pdf printable"],price:7}},
+];
+
+/* ================= REAL SHOP: Etsy Production + Research Lab ================= */
 const PW=612, PH=792, M=40;
 const PC={dark:"#1F2533", gray:"#626B7A", light:"#F1F3F7", line:"#CDD3DD", white:"#FFFFFF", trace:"#C2C8D2"};
 const ACC={purple:"#7B4FD6", teal:"#0E9F9A", orange:"#F07F1C", pink:"#E0508F", blue:"#2F7DE1", green:"#2C9F55", yellow:"#F2B705", red:"#D83A3A", navy:"#23395B", sage:"#5F8C70"};
 const CATS={kids:"Kids", planner:"Planners & trackers", party:"Party & events"};
-const TPL_NAMES={chart:"Chart",reward:"Reward chart",math:"Math worksheet",tracing:"Tracing worksheet",table:"Tracker",planner:"Planner page",sign:"Sign"};
+const TPL_NAMES={chart:"Chart",reward:"Reward chart",math:"Math worksheet",tracing:"Tracing worksheet",table:"Tracker",planner:"Planner page",sign:"Sign",letter:"Letter",certificate:"Certificate",bingo:"Bingo",scramble:"Word scramble",labels:"Labels",bundle:"Bundle"};
 const FOOT="For personal and classroom use. Print at home on US Letter paper.";
 const mctx=document.createElement("canvas").getContext("2d");
 function clean(t){ return String(t==null?"":t).replace(/[‘’]/g,"'").replace(/[“”]/g,'"').replace(/[–—]/g,"-").replace(/…/g,"...").replace(/[^\x20-\x7E -ÿ]/g,""); }
@@ -788,20 +966,22 @@ function wrapT(txt,size,bold,maxW){ const words=clean(txt).split(/\s+/).filter(B
 function tint(hex,t){ const n=parseInt(hex.slice(1),16), r=n>>16&255, g=n>>8&255, b=n&255, f=v=>Math.round(v+(255-v)*t).toString(16).padStart(2,"0"); return "#"+f(r)+f(g)+f(b); }
 function rng(seedStr){ let h=1779033703^seedStr.length; for(let i=0;i<seedStr.length;i++){ h=Math.imul(h^seedStr.charCodeAt(i),3432918353); h=h<<13|h>>>19; }
   return ()=>{ h=Math.imul(h^h>>>16,2246822507); h=Math.imul(h^h>>>13,3266489909); h^=h>>>16; return (h>>>0)/4294967296; }; }
+function shuffled(arr,r){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
 function layout(spec){
+  if(spec.template==="bundle") return layoutBundle(spec);
   const ops=[]; const acc=ACC[spec.accent]||ACC.purple, soft=tint(acc,.85), mid=tint(acc,.55);
   const R=(x,y,w,h,o)=>ops.push(Object.assign({t:"rect",x,y,w,h},o)); const T=(txt,x,y,s,o)=>ops.push(Object.assign({t:"text",txt:clean(txt),x,y,s},o));
   const L=(x1,y1,x2,y2,c,w,dash)=>ops.push({t:"line",x1,y1,x2,y2,c:c||PC.line,w:w||1,dash}); const Cc=(x,y,r,o)=>ops.push(Object.assign({t:"circle",x,y,r},o));
   const para=(txt,x,y,size,bold,maxW,color,lh,a)=>{ const ls=wrapT(txt,size,bold,maxW); ls.forEach((l,i)=>T(l,x,y+i*size*(lh||1.3),size,{b:bold,c:color,a})); return ls.length*size*(lh||1.3); };
-  const kids=spec.category==="kids";
+  const kids=spec.category!=="planner";
   function header(){
-    if(kids || spec.template==="sign"){
+    if(kids){
       R(M,34,PW-2*M,92,{f:acc,r:18});
       [[PW-M-26,52,9],[PW-M-56,104,6],[PW-M-90,60,4],[PW-M-110,112,5],[PW-M-130,80,3]].forEach(([x,y,r])=>Cc(x,y,r,{f:mid}));
       let ts=30, tl=wrapT(spec.title,ts,true,PW-2*M-150); while(tl.length>1&&ts>24){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M-150); } while(tl.length>2&&ts>16){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M-150); }
-      const sub=spec.subtitle?1:0, capH=ts*0.72, blockH=capH+(tl.length-1)*ts*1.05+(sub?20:0); let y=34+(92-blockH)/2+capH;
-      tl.forEach((l,i)=>{ T(l,M+22,y+i*ts*1.05,ts,{b:true,c:PC.white}); }); if(sub) T(wrapT(spec.subtitle,11.5,false,PW-2*M-160)[0],M+22,y+(tl.length-1)*ts*1.05+20,11.5,{c:PC.white});
+      const sub=spec.subtitle?1:0, capH=ts*0.72, blockH=capH+(tl.length-1)*ts*1.05+(sub?20:0); const y=34+(92-blockH)/2+capH;
+      tl.forEach((l,i)=>T(l,M+22,y+i*ts*1.05,ts,{b:true,c:PC.white})); if(sub) T(wrapT(spec.subtitle,11.5,false,PW-2*M-160)[0],M+22,y+(tl.length-1)*ts*1.05+20,11.5,{c:PC.white});
       return 150;
     }
     let ts=26, tl=wrapT(spec.title,ts,true,PW-2*M); while(tl.length>2&&ts>18){ ts-=2; tl=wrapT(spec.title,ts,true,PW-2*M); }
@@ -809,19 +989,22 @@ function layout(spec){
     if(spec.subtitle) y+=para(spec.subtitle,M,y,10.5,false,PW-2*M,PC.gray)-4;
     R(M,y,90,4,{f:acc,r:2}); return y+24;
   }
-  const foot=()=>{ T(FOOT,PW/2,770,7.5,{c:PC.gray,a:"center"}); };
+  const foot=()=>T(FOOT,PW/2,770,7.5,{c:PC.gray,a:"center"});
   const fields=(y,txt)=>{ if(!txt) return y; T(txt,M,y,10.5,{c:PC.dark}); return y+22; };
   const tpl=spec.template;
+  if(tpl==="sign") return signOps(spec,ops,R,T,Cc,acc,mid);
+  if(tpl==="certificate") return certOps(spec,ops,R,T,L,Cc,para,acc,mid,soft);
   let y=header();
 
   if(tpl==="chart"){
-    y=fields(y,spec.fields||"Name: ______________________     Week of: ______________");
+    y=fields(y,spec.fields||(kids?"Name: ______________________     Week of: ______________":""));
     const cols=(spec.columns&&spec.columns.length?spec.columns:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]).map(clean).slice(0,8), rows=(spec.rows||[]).map(clean).slice(0,12);
-    const first=190, cw=(PW-2*M-first)/cols.length, hh=30, bottom=spec.footer?700:735, rh=Math.min(50,(bottom-y-hh)/Math.max(1,rows.length));
+    const first=cols.length>5?190:230, cw=(PW-2*M-first)/cols.length, hh=30, bottom=spec.footer?700:735, rh=Math.min(50,(bottom-y-hh)/Math.max(1,rows.length));
     R(M,y,PW-2*M,hh,{f:acc,r:8}); T(spec.rowHead||"Task",M+12,y+19,11,{b:true,c:PC.white});
     cols.forEach((c,i)=>T(c,M+first+cw*i+cw/2,y+19,10.5,{b:true,c:PC.white,a:"center"})); y+=hh+4;
     rows.forEach((r,i)=>{ if(i%2===0) R(M,y,PW-2*M,rh-4,{f:soft,r:8});
       const ls=wrapT(r,11.5,true,first-20).slice(0,2); ls.forEach((l,j)=>T(l,M+12,y+(rh-4)/2+4-(ls.length-1)*7+j*14,11.5,{b:true,c:PC.dark}));
+      if(!r) L(M+12,y+(rh-4)/2+6,M+first-14,y+(rh-4)/2+6,PC.line,0.8);
       const bs=Math.min(22,rh-14); cols.forEach((c,k)=>R(M+first+cw*k+cw/2-bs/2,y+(rh-4)/2-bs/2,bs,bs,{s:acc,lw:1.4,r:5,f:PC.white})); y+=rh; });
     if(spec.footer){ R(M,712,PW-2*M,34,{f:soft,r:10}); T(spec.footer,PW/2,733,12,{b:true,c:PC.dark,a:"center"}); }
   }
@@ -829,21 +1012,21 @@ function layout(spec){
     y=fields(y,spec.fields||"Name: ______________________     Started: ______________");
     if(spec.goal){ y+=6; T("My goal:",M,y,12,{b:true,c:acc}); y+=para(spec.goal,M+62,y,13,true,PW-2*M-62,PC.dark)+10; }
     const n=[10,15,20,25,30].includes(+spec.spots)?+spec.spots:20, per=5, rowsN=Math.ceil(n/per);
-    const area=650-y, cell=Math.min((PW-2*M)/per, area/rowsN), r=cell*0.38; const gx=(PW-2*M-cell*per)/2;
+    const area=650-y, cell=Math.min((PW-2*M)/per, area/rowsN), r=cell*0.38, gx=(PW-2*M-cell*per)/2;
     for(let i=0;i<n;i++){ const cx=M+gx+cell*(i%per)+cell/2, cy=y+cell*Math.floor(i/per)+cell/2;
       Cc(cx,cy,r,{f:i%2?PC.white:soft,s:acc,lw:2}); T(String(i+1),cx,cy+5,13,{b:true,c:mid,a:"center"}); }
     R(M,670,PW-2*M,64,{s:acc,lw:2,r:14}); T(spec.prizeLabel||"When I fill every circle, I earn:",M+18,692,12,{b:true,c:acc}); L(M+18,722,PW-M-18,722,PC.line,1);
   }
   else if(tpl==="math"){
-    y=fields(y,"Name: ______________________     Date: ______________     Score: _____ / "+(spec.count||20));
+    const count=[12,16,20,24,25,30].includes(+spec.count)?+spec.count:20;
+    y=fields(y,"Name: ______________________     Date: ______________     Score: _____ / "+count);
     const op=["+","-","x"].includes(spec.op)?spec.op:"+", lo=Math.max(0,parseInt(spec.min)||0), hi=Math.max(lo+1,Math.min(999,parseInt(spec.max)||10));
-    const count=[12,16,20,24,25,30].includes(+spec.count)?+spec.count:20, r=rng(clean(spec.title)+op+lo+hi+count), probs=[];
-    const ri=()=>lo+Math.floor(r()*(hi-lo+1));
+    const r=rng(clean(spec.title)+op+lo+hi+count), probs=[]; const ri=()=>lo+Math.floor(r()*(hi-lo+1));
     for(let i=0;i<count;i++){ let a=ri(), b=ri(); if(op==="-"&&b>a){ const t=a; a=b; b=t; } probs.push([a,b,op==="+"?a+b:op==="-"?a-b:a*b]); }
     const per=count%5===0?5:4, rows=Math.ceil(count/per), cw=(PW-2*M)/per;
     const grid=(top,ch,showAns,size)=>probs.forEach(([a,b,ans],i)=>{ const cx=M+cw*(i%per)+cw/2+18, yy=top+ch*Math.floor(i/per);
       T("("+(i+1)+")",cx-cw/2+4,yy+size*0.2,8.5,{c:PC.gray});
-      T(String(a),cx,yy+size,size,{b:true,c:PC.dark,a:"right"}); T((op==="x"?"x":op)+"  "+b,cx,yy+size*2.2,size,{b:true,c:PC.dark,a:"right"});
+      T(String(a),cx,yy+size,size,{b:true,c:PC.dark,a:"right"}); T(op+"  "+b,cx,yy+size*2.2,size,{b:true,c:PC.dark,a:"right"});
       L(cx-size*2.6,yy+size*2.6,cx+2,yy+size*2.6,PC.dark,1.6); if(showAns) T(String(ans),cx,yy+size*3.8,size,{b:true,c:acc,a:"right"}); });
     const ch=Math.min(130,(735-y)/rows); grid(y+6,ch,false,Math.min(22,ch/4.8));
     foot(); ops.push({t:"page"});
@@ -853,7 +1036,7 @@ function layout(spec){
   else if(tpl==="tracing"){
     y=fields(y,"Name: ______________________     Date: ______________");
     const words=(spec.words||[]).map(clean).filter(Boolean).slice(0,6), blocks=Math.max(1,words.length), bh=(745-y)/blocks, gh=Math.min(44,(bh-14)/2-6);
-    words.forEach((w,i)=>{ let by=y+i*bh;
+    words.forEach((w,i)=>{ const by=y+i*bh;
       for(let k=0;k<2;k++){ const top=by+4+k*(gh+12), base=top+gh;
         L(M,top,PW-M,top,mid,1); L(M,top+gh/2,PW-M,top+gh/2,mid,0.8,[4,4]); L(M,base,PW-M,base,PC.dark,1.2);
         if(k===0){ const size=gh/0.72; let x=M+6; const ww=tw(w,size,false)+size*0.8; let n=0; while(x+tw(w,size,false)<PW-M && n<6){ T(w,x,base-1,size,{c:PC.trace}); x+=ww; n++; } } } });
@@ -861,11 +1044,13 @@ function layout(spec){
   else if(tpl==="table"){
     y=fields(y,spec.fields||"");
     let cols=(spec.columns||[]).map(clean).filter(Boolean).slice(0,7); if(!cols.length) cols=["Date","Item","Amount"];
-    const wts=cols.map(c=>/note|description|item|detail|book|title|exercise|meal|activity/i.test(c)?2.2:1), sum=wts.reduce((a,b)=>a+b,0), widths=wts.map(w=>w/sum*(PW-2*M));
-    const hh=30, notes=(spec.notes||[]).slice(0,3), rows=Math.max(8,Math.min(24,spec.rows||16)), bottom=740-notes.length*20, rh=Math.min(34,(bottom-y-hh)/rows);
+    const wts=cols.map(c=>/note|description|item|detail|book|title|exercise|meal|activity|idea|dream|address|name|task|category|workout|why|helped/i.test(c)?2:1), sum=wts.reduce((a,b)=>a+b,0), widths=wts.map(w=>w/sum*(PW-2*M));
+    const labels=(spec.rowLabels||[]).map(clean);
+    const hh=30, notes=(spec.notes||[]).slice(0,3), rows=Math.max(labels.length,Math.max(7,Math.min(24,spec.rows||16))), bottom=740-notes.length*20, rh=Math.min(36,(bottom-y-hh)/rows);
     R(M,y,PW-2*M,hh,{f:acc,r:8}); let x=M; cols.forEach((c,i)=>{ T(wrapT(c,9.5,true,widths[i]-8)[0],x+widths[i]/2,y+19,9.5,{b:true,c:PC.white,a:"center"}); x+=widths[i]; });
     y+=hh; const top=y;
     for(let r2=0;r2<rows;r2++){ if(r2%2) R(M,y,PW-2*M,rh,{f:soft}); L(M,y+rh,PW-M,y+rh,PC.line,0.6);
+      if(labels[r2]) T(wrapT(labels[r2],9.5,true,widths[0]-12)[0],M+8,y+rh/2+4,9.5,{b:true,c:PC.dark});
       if(spec.totalRow && r2===rows-1) T("Total",M+8,y+rh/2+4,10,{b:true,c:PC.dark}); y+=rh; }
     x=M; widths.slice(0,-1).forEach(w=>{ x+=w; L(x,top,x,y,PC.line,0.6); });
     y+=18; notes.forEach(n=>{ T("-",M,y,9.5,{b:true,c:acc}); y+=para(n,M+10,y,9.5,false,PW-2*M-10,PC.dark)+5; });
@@ -874,35 +1059,112 @@ function layout(spec){
     y=fields(y,spec.fields||"Date: ______________________");
     const secs=(spec.sections||[]).slice(0,8).map(s=>({head:clean(s.head),kind:["lines","checks","hours"].includes(s.kind)?s.kind:"lines",count:Math.max(2,Math.min(16,parseInt(s.count)||5)),wide:!!s.wide}));
     const rowsL=[]; for(let i=0;i<secs.length;i++){ const s=secs[i]; if(s.wide||i===secs.length-1||secs[i+1].wide) rowsL.push([s]); else { rowsL.push([s,secs[i+1]]); i++; } }
-    const units=rowsL.reduce((a,r)=>a+Math.max(...r.map(s=>s.count)),0), lh=Math.max(14,Math.min(26,(740-y-rowsL.length*44)/units));
+    const units=rowsL.reduce((a,r)=>a+Math.max(...r.map(s=>s.count)),0), lh=Math.max(13,Math.min(26,(740-y-rowsL.length*44)/units));
     const hour0=Math.max(5,Math.min(9,parseInt(spec.startHour)||6));
     rowsL.forEach(row=>{ const n=Math.max(...row.map(s=>s.count)), bh=34+n*lh, w=row.length===2?(PW-2*M-12)/2:PW-2*M;
       row.forEach((s,j)=>{ const bx=M+j*(w+12); R(bx,y,w,bh,{s:mid,lw:1.2,r:12}); R(bx,y,w,26,{f:soft,r:12}); R(bx,y+14,w,12,{f:soft}); T(s.head,bx+12,y+17,11,{b:true,c:acc});
         for(let k=0;k<s.count;k++){ const ly=y+30+(k+1)*lh;
-          if(s.kind==="checks"){ R(bx+12,ly-lh*0.55-5,10,10,{s:acc,lw:1.1,r:2}); L(bx+28,ly,bx+w-12,ly,PC.line,0.7); }
+          if(s.kind==="checks"){ R(bx+12,ly-10,10,10,{s:acc,lw:1.1,r:2}); L(bx+28,ly,bx+w-12,ly,PC.line,0.7); }
           else if(s.kind==="hours"){ const h=hour0+k, lab=(h%12||12)+(h<12?" AM":" PM"); T(lab,bx+12,ly-4,8.5,{b:true,c:PC.gray}); L(bx+52,ly,bx+w-12,ly,PC.line,0.7); }
           else L(bx+12,ly,bx+w-12,ly,PC.line,0.7); } });
       y+=bh+10; });
   }
-  else { // sign (party and events)
-    const onAcc=spec.accent==="yellow"?PC.dark:PC.white;
-    R(20,20,PW-40,PH-40,{s:acc,lw:8,r:24}); R(20,20,PW-40,320,{f:acc,r:24}); R(20,300,PW-40,40,{f:acc});
-    [[70,70,14],[540,90,10],[110,290,8],[500,280,16],[300,60,6],[440,60,5],[170,90,5]].forEach(([x,yy,r])=>Cc(x,yy,r,{f:mid}));
-    let ts=86, tl=wrapT(spec.title,ts,true,PW-110); while((tl.length>3||tl.some(l=>tw(l,ts,true)>PW-110))&&ts>30){ ts-=4; tl=wrapT(spec.title,ts,true,PW-110); }
-    const bH=tl.length*ts*1.02; tl.forEach((l,i)=>T(l,PW/2,180-bH/2+ts*0.78+i*ts*1.02,ts,{b:true,c:onAcc,a:"center"}));
-    let ss=30; while(tw(clean(spec.subtitle||""),ss,true)>PW-120 && ss>18) ss-=2; const sub=wrapT(spec.subtitle||"",ss,true,PW-120), lns=(spec.lines||[]).slice(0,4).map(ln=>wrapT(ln,20,false,PW-130));
-    const bh=sub.length*40+30+lns.reduce((a,l)=>a+l.length*28+16,0); let yy=340+(390-bh)/2+30;
-    sub.forEach(l=>{ T(l,PW/2,yy,30,{b:true,c:PC.dark,a:"center"}); yy+=40; }); R(PW/2-40,yy-14,80,5,{f:acc,r:2}); yy+=30;
-    lns.forEach(ls=>{ ls.forEach(l=>{ T(l,PW/2,yy,20,{c:PC.dark,a:"center"}); yy+=28; }); yy+=16; });
-    return ops;
+  else if(tpl==="letter"){
+    y=fields(y,spec.fields||"Date: ______________________")+6;
+    const n=Math.max(6,Math.min(16,parseInt(spec.lines)||12)), lh=(735-y)/n, prompts=(spec.prompts||[]).map(clean);
+    R(M-6,y-6,PW-2*M+12,735-y+16,{s:mid,lw:1.5,r:16});
+    for(let i=0;i<n;i++){ const ly=y+(i+1)*lh; L(M+10,ly,PW-M-10,ly,PC.line,0.8); if(prompts[i]) T(prompts[i],M+12,ly-6,13,{b:i===0,c:PC.dark}); }
+  }
+  else if(tpl==="bingo"){
+    const words=(spec.words||[]).map(clean).filter(Boolean), cards=Math.max(1,Math.min(6,parseInt(spec.cards)||1));
+    for(let c=0;c<cards;c++){
+      if(c){ foot(); ops.push({t:"page"}); y=header(); }
+      y=fields(y,"Name: ______________________"+(cards>1?"          Card "+(c+1):""));
+      const pick=shuffled(words,rng(clean(spec.title)+c)).slice(0,24); while(pick.length<24) pick.push("");
+      const size=Math.min((PW-2*M)/5,(735-y-40)/5), gx=(PW-5*size)/2;
+      "BINGO".split("").forEach((ch,i)=>{ R(gx+i*size+2,y,size-4,36,{f:acc,r:8}); T(ch,gx+i*size+size/2,y+26,24,{b:true,c:PC.white,a:"center"}); });
+      const top=y+42; let k=0;
+      for(let rr=0;rr<5;rr++) for(let cc=0;cc<5;cc++){ const x0=gx+cc*size, y0=top+rr*size, free=rr===2&&cc===2;
+        R(x0+2,y0+2,size-4,size-4,{s:mid,lw:1.5,r:8,f:free?soft:PC.white});
+        const word=free?"FREE":pick[k++]; const ls=wrapT(word,13,true,size-16).slice(0,3);
+        ls.forEach((l,j)=>T(l,x0+size/2,y0+size/2+5-(ls.length-1)*8+j*16,13,{b:true,c:free?acc:PC.dark,a:"center"})); }
+    }
+  }
+  else if(tpl==="scramble"){
+    y=fields(y,"Name: ______________________     Date: ______________");
+    const words=(spec.words||[]).map(w=>clean(w).replace(/\s+/g,"")).filter(Boolean).slice(0,15), r=rng(clean(spec.title));
+    const scr=words.map(w=>{ let s=w; for(let t=0;t<8&&s.toLowerCase()===w.toLowerCase();t++) s=shuffled(w.split(""),r).join(""); return s.toUpperCase(); });
+    const rh=Math.min(46,(735-y)/Math.max(1,words.length));
+    scr.forEach((s,i)=>{ const yy=y+i*rh+rh*0.6; Cc(M+12,yy-5,11,{f:soft}); T(String(i+1),M+12,yy-1,10,{b:true,c:acc,a:"center"});
+      T(s.split("").join(" "),M+34,yy,16,{b:true,c:PC.dark}); L(PW/2+20,yy+2,PW-M,yy+2,PC.dark,1); });
+    foot(); ops.push({t:"page"});
+    T("Answer key: "+clean(spec.title),M,60,16,{b:true,c:PC.dark}); R(M,72,90,4,{f:acc,r:2});
+    words.forEach((w,i)=>T((i+1)+".  "+scr[i]+"  =  "+w.toUpperCase(),M,104+i*26,12,{c:PC.dark}));
+  }
+  else if(tpl==="labels"){
+    const labels=(spec.labels||[]).map(clean).slice(0,8), n=Math.max(1,labels.length), rows=Math.ceil(n/2), gw=(PW-2*M-16)/2, gh=Math.min(140,(740-y-(rows-1)*14)/rows);
+    labels.forEach((t,i)=>{ const x0=M+(i%2)*(gw+16), y0=y+Math.floor(i/2)*(gh+14);
+      [[x0,y0,x0+gw,y0],[x0,y0+gh,x0+gw,y0+gh],[x0,y0,x0,y0+gh],[x0+gw,y0,x0+gw,y0+gh]].forEach(l=>L(l[0],l[1],l[2],l[3],PC.gray,0.8,[5,4]));
+      R(x0+10,y0+10,gw-20,gh-20,{f:soft,r:12}); R(x0+10,y0+10,gw-20,14,{f:acc,r:7});
+      const ls=wrapT(t,18,true,gw-50).slice(0,2); const ty=y0+gh/2+(spec.blankLine?-6:6)-(ls.length-1)*11;
+      ls.forEach((l,j)=>T(l,x0+gw/2,ty+j*22,18,{b:true,c:PC.dark,a:"center"}));
+      if(spec.blankLine) L(x0+34,y0+gh-30,x0+gw-34,y0+gh-30,PC.dark,1); });
   }
   foot(); return ops;
 }
+function signOps(spec,ops,R,T,Cc,acc,mid){
+  const onAcc=spec.accent==="yellow"?PC.dark:PC.white;
+  R(20,20,PW-40,PH-40,{s:acc,lw:8,r:24}); R(20,20,PW-40,320,{f:acc,r:24}); R(20,300,PW-40,40,{f:acc});
+  [[70,70,14],[540,90,10],[110,290,8],[500,280,16],[300,60,6],[440,60,5],[170,90,5]].forEach(([x,yy,r])=>Cc(x,yy,r,{f:mid}));
+  let ts=86, tl=wrapT(spec.title,ts,true,PW-110); while((tl.length>3||tl.some(l=>tw(l,ts,true)>PW-110))&&ts>30){ ts-=4; tl=wrapT(spec.title,ts,true,PW-110); }
+  const bH=tl.length*ts*1.02; tl.forEach((l,i)=>T(l,PW/2,180-bH/2+ts*0.78+i*ts*1.02,ts,{b:true,c:onAcc,a:"center"}));
+  let ss=30; while(tw(clean(spec.subtitle||""),ss,true)>PW-120 && ss>18) ss-=2;
+  const sub=wrapT(spec.subtitle||"",ss,true,PW-120), lns=(spec.lines||[]).slice(0,4).map(ln=>wrapT(ln,20,false,PW-130));
+  const bh=sub.length*40+30+lns.reduce((a,l)=>a+l.length*28+16,0); let yy=340+(390-bh)/2+30;
+  sub.forEach(l=>{ T(l,PW/2,yy,ss,{b:true,c:PC.dark,a:"center"}); yy+=40; }); R(PW/2-40,yy-14,80,5,{f:acc,r:2}); yy+=30;
+  lns.forEach(ls=>{ ls.forEach(l=>{ T(l,PW/2,yy,20,{c:PC.dark,a:"center"}); yy+=28; }); yy+=16; });
+  return ops;
+}
+function certOps(spec,ops,R,T,L,Cc,para,acc,mid,soft){
+  R(24,24,PW-48,PH-48,{s:acc,lw:6,r:18}); R(38,38,PW-76,PH-76,{s:mid,lw:1.5,r:12});
+  [[70,70],[PW-70,70],[70,PH-70],[PW-70,PH-70]].forEach(([x,y])=>Cc(x,y,10,{f:soft,s:acc,lw:1.5}));
+  T("CERTIFICATE",PW/2,140,14,{b:true,c:mid,a:"center"});
+  let ts=40, tl=wrapT(spec.title,ts,true,PW-140); while(tl.length>2&&ts>24){ ts-=2; tl=wrapT(spec.title,ts,true,PW-140); }
+  let y=200; tl.forEach(l=>{ T(l,PW/2,y,ts,{b:true,c:acc,a:"center"}); y+=ts*1.1; });
+  y+=20; T(spec.subtitle||"This certifies that",PW/2,y,16,{c:PC.gray,a:"center"}); y+=80;
+  L(120,y,PW-120,y,PC.dark,1.2); T("Name",PW/2,y+18,10,{c:PC.gray,a:"center"}); y+=70;
+  wrapT(spec.body||"",16,false,PW-160).forEach(l=>{ T(l,PW/2,y,16,{c:PC.dark,a:"center"}); y+=24; });
+  Cc(PW/2,600,46,{f:acc}); Cc(PW/2,600,38,{s:PC.white,lw:1.5}); T("OFFICIAL",PW/2,605,13,{b:true,c:PC.white,a:"center"});
+  L(90,690,250,690,PC.dark,1); T("Date",170,708,10,{c:PC.gray,a:"center"});
+  L(PW-250,690,PW-90,690,PC.dark,1); T(spec.signLabel||"Signed",PW-170,708,10,{c:PC.gray,a:"center"});
+  return ops;
+}
+function layoutBundle(spec){
+  const pages=(spec.pages||[]).filter(p=>p&&p.template&&p.template!=="bundle").slice(0,12);
+  let body=[]; pages.forEach(p=>{ body.push({t:"page"}); body=body.concat(layout(Object.assign({category:spec.category,accent:spec.accent},p))); });
+  const total=pagesOf(body).length; // includes the cover slot
+  const ops=[]; const acc=ACC[spec.accent]||ACC.purple, soft=tint(acc,.85), mid=tint(acc,.55);
+  const R=(x,y,w,h,o)=>ops.push(Object.assign({t:"rect",x,y,w,h},o)); const T=(txt,x,y,s,o)=>ops.push(Object.assign({t:"text",txt:clean(txt),x,y,s},o)); const Cc=(x,y,r,o)=>ops.push(Object.assign({t:"circle",x,y,r},o));
+  R(0,0,PW,340,{f:acc}); [[60,60,14],[550,80,10],[90,300,7],[520,290,16],[320,50,6],[460,40,5]].forEach(([x,y,r])=>Cc(x,y,r,{f:mid}));
+  let ts=46, tl=wrapT(spec.title,ts,true,PW-100); while(tl.length>3&&ts>26){ ts-=2; tl=wrapT(spec.title,ts,true,PW-100); }
+  let y=170-tl.length*ts*0.55+ts*0.7; tl.forEach(l=>{ T(l,PW/2,y,ts,{b:true,c:PC.white,a:"center"}); y+=ts*1.08; });
+  wrapT(spec.subtitle||"",13,false,PW-120).slice(0,2).forEach(l=>{ T(l,PW/2,y+4,13,{c:PC.white,a:"center"}); y+=18; });
+  R(PW/2-100,296,200,32,{f:PC.white,r:16}); T(total+" PRINTABLE PAGES",PW/2,317,12,{b:true,c:acc,a:"center"});
+  T("What's inside",M,392,18,{b:true,c:PC.dark}); R(M,402,70,4,{f:acc,r:2});
+  const names=[]; pages.forEach(p=>{ const n=clean(p.title); if(!names.includes(n)) names.push(n); if(p.template==="math"||p.template==="scramble") { const k="Answer key: "+n; if(names.length<24) names.push(k); } });
+  const show=names.filter(n=>!n.startsWith("Answer key")).slice(0,20), keys=names.length-show.length;
+  show.forEach((n,i)=>{ const col=i%2, row=Math.floor(i/2), x=M+col*(PW-2*M)/2, yy=436+row*30;
+    R(x,yy-11,12,12,{f:soft,s:acc,lw:1,r:3}); T(wrapT(n,12,false,(PW-2*M)/2-30)[0],x+22,yy,12,{c:PC.dark}); });
+  if(keys>0) T("Plus answer keys for the worksheets and word games.",M,436+Math.ceil(show.length/2)*30+14,11,{c:PC.gray});
+  R(M,700,PW-2*M,44,{f:soft,r:12}); T("Instant download  |  Print at home  |  US Letter 8.5 x 11 in",PW/2,727,12,{b:true,c:PC.dark,a:"center"});
+  T(FOOT,PW/2,770,7.5,{c:PC.gray,a:"center"});
+  return ops.concat(body);
+}
 function pagesOf(ops){ const pages=[[]]; ops.forEach(o=>{ if(o.t==="page") pages.push([]); else pages[pages.length-1].push(o); }); return pages; }
-function toSVG(ops){
+function toSVG(ops,pageIndex,fixed){
   const esc2=s=>s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
-  let o='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+PW+' '+PH+'" style="background:#fff;display:block;width:100%;height:auto"><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
-  pagesOf(ops)[0].forEach(p=>{
+  let o='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+PW+' '+PH+'" '+(fixed?'width="'+PW+'" height="'+PH+'"':'style="background:#fff;display:block;width:100%;height:auto"')+'><rect width="'+PW+'" height="'+PH+'" fill="#fff"/>';
+  (pagesOf(ops)[pageIndex||0]||[]).forEach(p=>{
     if(p.t==="rect") o+='<rect x="'+p.x+'" y="'+p.y+'" width="'+p.w+'" height="'+p.h+'" rx="'+(p.r||0)+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
     if(p.t==="circle") o+='<circle cx="'+p.x+'" cy="'+p.y+'" r="'+p.r+'" fill="'+(p.f||"none")+'" stroke="'+(p.s||"none")+'" stroke-width="'+(p.lw||0)+'"/>';
     if(p.t==="line") o+='<line x1="'+p.x1+'" y1="'+p.y1+'" x2="'+p.x2+'" y2="'+p.y2+'" stroke="'+p.c+'" stroke-width="'+p.w+'"'+(p.dash?' stroke-dasharray="'+p.dash.join(" ")+'"':'')+'/>';
@@ -916,72 +1178,94 @@ function toPDF(ops){
   pagesOf(ops).forEach((page,pi)=>{ if(pi) d.addPage("letter");
     page.forEach(p=>{
       if(p.t==="rect"){ const st=(p.f?"F":"")+(p.s?"D":""); if(!st) return; if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); }
-        if(p.r) d.roundedRect(p.x,p.y,p.w,p.h,p.r,p.r,st); else d.rect(p.x,p.y,p.w,p.h,st); }
+        if(p.r) d.roundedRect(p.x,p.y,p.w,p.h,Math.min(p.r,p.w/2,p.h/2),Math.min(p.r,p.w/2,p.h/2),st); else d.rect(p.x,p.y,p.w,p.h,st); }
       if(p.t==="circle"){ const st=(p.f?"F":"")+(p.s?"D":""); if(p.f) d.setFillColor(p.f); if(p.s){ d.setDrawColor(p.s); d.setLineWidth(p.lw||1); } d.circle(p.x,p.y,p.r,st); }
       if(p.t==="line"){ d.setDrawColor(p.c); d.setLineWidth(p.w); d.setLineDashPattern(p.dash||[],0); d.line(p.x1,p.y1,p.x2,p.y2); d.setLineDashPattern([],0); }
       if(p.t==="text"){ d.setFont("helvetica",p.b?"bold":"normal"); d.setFontSize(p.s); d.setTextColor(p.c||"#000000"); d.text(p.txt,p.x,p.y,{align:p.a||"left"}); }
     }); });
   return d.output("blob");
 }
-
-/* ---------- shop state ---------- */
-const SHOPKEY="moneyland-shop-v2";
-function seedProducts(){ return [
- {category:"kids", template:"reward", accent:"purple", title:"Sticker Reward Chart", subtitle:"Fill a circle every time you reach your goal!", spots:20, goal:"______________________________",
-  listing:{etsyTitle:"Sticker Reward Chart for Kids, Printable Behavior Chart, Potty Training Chart, Chore Reward Chart, Instant Download PDF",
-   tags:["reward chart","sticker chart","behavior chart","kids printable","potty training","chore chart","toddler chart","incentive chart","classroom reward","parenting","kids goals","printable pdf","sticker reward"], price:3.5}},
- {category:"kids", template:"math", accent:"teal", title:"Addition Practice: Sums to 20", subtitle:"Solve each problem. Check your work!", op:"+", min:0, max:10, count:20,
-  listing:{etsyTitle:"Addition Worksheet Sums to 20, Printable First Grade Math Practice with Answer Key, Kindergarten Homeschool Math PDF",
-   tags:["addition worksheet","math worksheet","first grade math","kindergarten math","homeschool","math practice","answer key","printable math","teacher resource","math facts","kids worksheet","1st grade","pdf worksheet"], price:2.5}},
- {category:"kids", template:"chart", accent:"orange", title:"My Morning Routine", subtitle:"Check off each step as you finish it.", rows:["Make my bed","Get dressed","Eat breakfast","Brush my teeth","Comb my hair","Pack my backpack","Shoes and coat on"], footer:"I did it! Stars this week: ______",
-  listing:{etsyTitle:"Morning Routine Chart for Kids, Printable Daily Checklist, Toddler Routine Chart, Kids Weekly Chore Chart PDF",
-   tags:["morning routine","routine chart","kids checklist","toddler routine","chore chart","daily routine","kids printable","visual schedule","parenting tool","weekly chart","school morning","printable pdf","kids responsibility"], price:3}},
- {category:"planner", template:"chart", accent:"sage", title:"Weekly Habit Tracker", subtitle:"Track up to 10 habits. Small steps every day add up.", rowHead:"Habit", rows:["Drink 8 glasses of water","Move for 30 minutes","Read 10 pages","No phone after 10 PM","Eat a vegetable","Sleep 7+ hours","","",""], fields:"Week of: ______________________",
-  listing:{etsyTitle:"Weekly Habit Tracker Printable, Minimalist Habit Planner Page, Daily Goals Checklist, Self Care Tracker PDF Instant Download",
-   tags:["habit tracker","weekly planner","goal tracker","self care","printable planner","minimalist planner","daily habits","planner insert","productivity","wellness tracker","goal setting","pdf planner","new year goals"], price:3}},
- {category:"planner", template:"table", accent:"navy", title:"Monthly Budget Tracker", subtitle:"Write down every expense. Know where your money goes.", fields:"Month: ______________     Income: $____________     Budget: $____________",
-  columns:["Date","Description","Category","Amount","Running total"], rows:20, totalRow:true, notes:["Review your categories at the end of the month and adjust next month's budget."],
-  listing:{etsyTitle:"Monthly Budget Tracker Printable, Expense Tracker Sheet, Spending Log, Personal Finance Planner Page PDF",
-   tags:["budget tracker","expense tracker","budget planner","spending log","finance planner","money tracker","monthly budget","printable budget","budget sheet","savings","bill tracker","pdf planner","personal finance"], price:3.5}},
- {category:"party", template:"sign", accent:"pink", title:"Welcome to the Party", subtitle:"________________ is turning ____!", lines:["Grab a snack, find a seat","and let's celebrate!"],
-  listing:{etsyTitle:"Birthday Party Welcome Sign, Printable Kids Birthday Sign, Editable Name Party Decor, Instant Download PDF",
-   tags:["welcome sign","birthday sign","party sign","kids birthday","birthday decor","party printable","girl birthday","boy birthday","party decorations","celebration","birthday party","pdf sign","instant download"], price:3}},
-];}
-function listingDesc(spec){
-  const who={kids:"Made for kids at home or in the classroom.",planner:"A simple way to stay organized and on track.",party:"Perfect for birthdays, showers and celebrations."}[spec.category]||"";
-  const extra=spec.template==="math"?"\n- Includes a separate answer key page":"";
-  return clean(spec.title)+"\n\n"+who+" "+clean(spec.subtitle||"")+"\n\nWHAT YOU GET\n- 1 PDF file, US Letter size (8.5 x 11 in)"+extra+"\n- Instant digital download. Nothing is shipped.\n- Print as many copies as you need for personal or classroom use.\n\nHOW IT WORKS\n1. Buy and download the PDF from your Etsy purchases page.\n2. Print at home or at any print shop.\n\nThis design was created with the help of AI tools and checked by a person before listing.";
+/* Etsy listing photo: 2400 x 1800 (4:3), page preview plus title */
+function svgImage(svg){ return new Promise((ok,bad)=>{ const im=new Image(); im.onload=()=>ok(im); im.onerror=bad; im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(svg); }); }
+async function listingPNG(spec){
+  const ops=layout(spec), n=pagesOf(ops).length, acc=ACC[spec.accent]||ACC.purple;
+  const c=document.createElement("canvas"); c.width=2400; c.height=1800; const g=c.getContext("2d");
+  g.fillStyle=tint(acc,.86); g.fillRect(0,0,2400,1800);
+  const imgs=[await svgImage(toSVG(ops,0,true))]; if(n>1) imgs.push(await svgImage(toSVG(ops,1,true)));
+  const ph=1320, pw=ph*PW/PH;
+  if(imgs[1]){ g.save(); g.translate(140+pw*0.3,190); g.rotate(0.05); g.shadowColor="rgba(0,0,0,.25)"; g.shadowBlur=40; g.drawImage(imgs[1],0,0,pw,ph); g.restore(); }
+  g.save(); g.translate(120,250); g.rotate(-0.02); g.shadowColor="rgba(0,0,0,.3)"; g.shadowBlur=50; g.fillStyle="#fff"; g.fillRect(0,0,pw,ph); g.drawImage(imgs[0],0,0,pw,ph); g.restore();
+  const x0=1580, wmax=740; g.fillStyle="#1F2533"; let fs=110, lines;
+  const wrap=(t,f)=>{ g.font="bold "+f+"px Helvetica, Arial, sans-serif"; const ws=clean(t).split(" "), out=[]; let cur=""; ws.forEach(w=>{ const tt=cur?cur+" "+w:w; if(g.measureText(tt).width>wmax&&cur){ out.push(cur); cur=w; } else cur=tt; }); if(cur) out.push(cur); return out; };
+  do { lines=wrap(spec.title,fs); fs-=6; } while((lines.length>4 || lines.some(l=>g.measureText(l).width>wmax)) && fs>56);
+  fs+=6; g.font="bold "+fs+"px Helvetica, Arial, sans-serif"; let y=430; lines.forEach(l=>{ g.fillText(l,x0,y); y+=fs*1.12; });
+  g.fillStyle=acc; g.fillRect(x0,y-20,180,14); y+=70;
+  g.font="600 52px Helvetica, Arial, sans-serif"; g.fillStyle="#1F2533";
+  [n+(n>1?" printable pages":" printable page"),"Instant download","Print at home"].forEach(t=>{ g.fillStyle=acc; g.beginPath(); g.arc(x0+18,y-18,14,0,7); g.fill(); g.fillStyle="#1F2533"; g.fillText(t,x0+56,y); y+=92; });
+  return await new Promise(ok=>c.toBlob(ok,"image/png"));
 }
-function loadShop(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
-  const seeds=seedProducts(); return {nextId:seeds.length+1, items:seeds.map((p,i)=>({id:i+1,status:"review",created:Date.now(),spec:p,price:p.listing.price,sales:0,starter:true}))}; }
-let SHOP=loadShop();
-function saveShop(){ try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
-const thumbCache={};
-function svgFor(it){ if(!thumbCache[it.id]) thumbCache[it.id]=toSVG(layout(it.spec)); return thumbCache[it.id]; }
 
-/* ---------- shop UI ---------- */
+/* ---------- data: the website keeps everything in the Moneyland database; the Claude copy uses this browser ---------- */
+const SHOPKEY="moneyland-shop-v3";
+let MODE="local", SHOP={items:[],nextId:1}, IDEAS=[], LASTRUN=null;
+function norm(r){ return {id:r.id,status:r.status,spec:r.spec,price:Number(r.price),sales:r.sales||0,source:r.source}; }
+function loadLocal(){ try{ const s=JSON.parse(localStorage.getItem(SHOPKEY)||"null"); if(s&&Array.isArray(s.items)) return s; }catch(e){}
+  return {nextId:SEEDS.length+1, items:SEEDS.map((p,i)=>({id:i+1,status:"review",spec:p,price:p.listing.price,sales:0,source:"starter"}))}; }
+function saveLocal(){ if(MODE!=="local") return; try{ localStorage.setItem(SHOPKEY,JSON.stringify(SHOP)); }catch(e){} }
+async function api(path,body){
+  const r=await fetch(path,{method:body?"POST":"GET",headers:{"content-type":"application/json","x-moneyland-code":accessCode||""},body:body?JSON.stringify(Object.assign({code:accessCode},body)):undefined});
+  let data={}; try{ data=await r.json(); }catch(e){}
+  if(!r.ok){ if(data.code==="needs_code") showCode(); throw {code:data.code||"upstream_error",message:data.error||("Error "+r.status)}; }
+  return data;
+}
+async function refresh(){
+  if(MODE!=="db") return;
+  try{ const d=await api("/api/data"); SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun; renderShopBoard(); renderLab(); }
+  catch(e){ $("labNote").textContent=e.message||"Couldn't reach the database."; }
+}
+async function startData(){
+  try{ const r=await fetch("/api/data",{headers:{"x-moneyland-code":accessCode||""}}); const d=await r.json();
+    if(d.configured&&d.configured.db){ MODE="db"; if(r.ok){ SHOP.items=(d.products||[]).map(norm); IDEAS=d.ideas||[]; LASTRUN=d.lastRun;
+        if(!SHOP.items.length){ try{ const sd=await api("/api/data",{action:"seed",items:SEEDS.slice().reverse()}); if(sd.products) SHOP.items=sd.products.map(norm); }catch(e){} } }
+      else if(d.code==="needs_code") showCode(); }
+    else { SHOP=loadLocal(); $("labNote").textContent="The Research Lab runs once the Moneyland database key is added in Vercel."; }
+  }catch(e){ SHOP=loadLocal(); $("labNote").textContent="The Research Lab and daily research run on the Moneyland website. This copy keeps products in this browser."; }
+  renderShopBoard(); renderLab();
+  if(MODE==="db") setInterval(refresh,60000);
+}
+async function updateItem(it,fields){
+  Object.assign(it,fields); renderShopBoard();
+  if(MODE==="db"){ try{ await api("/api/data",{action:"product.update",id:it.id,fields}); }catch(e){ $("pmMsg").textContent="Couldn't save: "+(e.message||""); refresh(); } } else saveLocal();
+}
+
+/* ---------- Etsy Production board ---------- */
+const thumbCache={};
+function svgFor(it){ const k=it.id+":"+JSON.stringify(it.spec).length; if(!thumbCache[k]) thumbCache[k]=toSVG(layout(it.spec),0); return thumbCache[k]; }
+function pageCount(spec){ return pagesOf(layout(spec)).length; }
 function renderShopBoard(){
   const cols={review:$("colReview"),approved:$("colReady"),listed:$("colLive")};
   Object.values(cols).forEach(c=>c.innerHTML="");
   SHOP.items.forEach(it=>{
     const c=document.createElement("button"); c.className="pcard"; c.type="button";
-    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
+    c.innerHTML='<div class="pthumb">'+svgFor(it)+'</div><div class="pmeta"><b></b><small>'+(CATS[it.spec.category]||"")+' &middot; '+pageCount(it.spec)+' pg &middot; $'+Number(it.price).toFixed(2)+(it.status==="listed"?' &middot; '+it.sales+' sold':'')+'</small></div>';
     c.querySelector("b").textContent=clean(it.spec.title);
     c.addEventListener("click",()=>openProduct(it.id));
     (cols[it.status]||cols.review).appendChild(c);
   });
-  Object.entries(cols).forEach(([k,c])=>{ if(!c.children.length) c.innerHTML='<p class="note">'+({review:"Nothing waiting. Ask the Core to make products.",approved:"Approve a product and it lands here, ready to list.",listed:"Products you have put on Etsy show here."})[k]+'</p>'; });
+  Object.entries(cols).forEach(([k,c])=>{ if(!c.children.length) c.innerHTML='<p class="note">'+({review:"Nothing waiting. Build an idea from the Research Lab or ask the Core.",approved:"Approve a product and it lands here, ready to list.",listed:"Products you have put on Etsy show here."})[k]+'</p>'; });
   const live=SHOP.items.filter(i=>i.status==="listed"), rev=live.reduce((a,i)=>a+i.sales*i.price,0);
   $("sReview").textContent=SHOP.items.filter(i=>i.status==="review").length; $("sReady").textContent=SHOP.items.filter(i=>i.status==="approved").length;
   $("sLive").textContent=live.length; $("sMoney").textContent="$"+rev.toFixed(2);
 }
-let openId=null;
+let openId=null, prevPage=0;
+function showPage(){ const it=cur(); if(!it) return; const ops=layout(it.spec), n=pagesOf(ops).length; prevPage=Math.max(0,Math.min(n-1,prevPage));
+  $("pmPreview").innerHTML=toSVG(ops,prevPage); $("pmPageNum").textContent="Page "+(prevPage+1)+" of "+n; $("pmPrev").disabled=prevPage===0; $("pmNext").disabled=prevPage>=n-1; $("pmPager").hidden=n<2; }
 function openProduct(id){
-  const it=SHOP.items.find(x=>x.id===id); if(!it) return; openId=id;
+  const it=SHOP.items.find(x=>x.id===id); if(!it) return; openId=id; prevPage=0;
   const L=it.spec.listing||{};
-  $("pmPreview").innerHTML=svgFor(it);
+  showPage();
   $("pmTitle").textContent=clean(it.spec.title);
-  $("pmStatus").textContent=(CATS[it.spec.category]||"")+" · "+TPL_NAMES[it.spec.template]+" · "+({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
+  $("pmStatus").textContent=(CATS[it.spec.category]||"")+" | "+TPL_NAMES[it.spec.template]+" | "+({review:"Needs your OK",approved:"Ready to list on Etsy",listed:"Live on Etsy"})[it.status];
   $("pmEtsyTitle").value=clean(L.etsyTitle||it.spec.title).slice(0,140);
   $("pmDesc").value=listingDesc(it.spec);
   $("pmTags").value=(L.tags||[]).map(t=>clean(t).slice(0,20)).slice(0,13).join(", ");
@@ -990,64 +1274,96 @@ function openProduct(id){
   $("pmSales").textContent=it.sales; $("pmMsg").textContent="";
   $("pmodal").hidden=false; $("pmClose").focus();
 }
+function listingDesc(spec){
+  const who={kids:"Made for kids at home or in the classroom.",planner:"A simple way to stay organized and on track.",party:"Perfect for birthdays, showers and celebrations."}[spec.category]||"";
+  const n=pageCount(spec), inside=spec.template==="bundle"?"\n\nWHAT'S INSIDE\n"+(spec.pages||[]).map(p=>"- "+clean(p.title)).join("\n"):"";
+  const keys=/"template":"(math|scramble)"/.test(JSON.stringify(spec))?"\n- Answer keys included":"";
+  return clean(spec.title)+"\n\n"+who+" "+clean(spec.subtitle||"")+inside+"\n\nWHAT YOU GET\n- 1 PDF file with "+n+" printable page"+(n>1?"s":"")+", US Letter size (8.5 x 11 in)"+keys+"\n- Instant digital download. Nothing is shipped.\n- Print as many copies as you need for personal or classroom use.\n\nHOW IT WORKS\n1. Buy and download the PDF from your Etsy purchases page.\n2. Print at home or at any print shop.\n\nThis design was created with the help of AI tools and checked by a person before listing.";
+}
 function closeProduct(){ $("pmodal").hidden=true; openId=null; }
 function cur(){ return SHOP.items.find(x=>x.id===openId); }
-function setStatus(st,msg){ const it=cur(); it.status=st; saveShop(); renderShopBoard(); openProduct(it.id); $("pmMsg").textContent=msg||""; }
+async function setStatus(st,msg){ const it=cur(); await updateItem(it,{status:st}); openProduct(it.id); $("pmMsg").textContent=msg||""; }
 async function copyText(el){ try{ await navigator.clipboard.writeText(el.value); $("pmMsg").textContent="Copied."; }catch(e){ el.focus(); el.select(); $("pmMsg").textContent="Selected. Press Ctrl+C to copy."; } }
 let dl=null;
-async function downloadPDF(){
-  const it=cur(); let blob;
-  try{ blob=toPDF(layout(it.spec)); }catch(e){ $("pmMsg").textContent="The PDF maker didn't load. Check your internet and reload the page."; return; }
-  const name=clean(it.spec.title).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"")+".pdf";
+async function saveFile(name,blob){
   if(dl){ try{ await dl.save({filename:name,data:blob}); $("pmMsg").textContent="Saved "+name; }catch(e){ $("pmMsg").textContent=e.code==="declined"?"Download cancelled.":"Couldn't save the file here."; } return; }
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },2000);
   $("pmMsg").textContent="Downloaded "+name;
 }
+const fileBase=it=>clean(it.spec.title).replace(/[^A-Za-z0-9]+/g,"-").replace(/^-|-$/g,"");
+async function downloadPDF(){ const it=cur(); let blob; try{ blob=toPDF(layout(it.spec)); }catch(e){ $("pmMsg").textContent="The PDF maker didn't load. Check your internet and reload the page."; return; } saveFile(fileBase(it)+".pdf",blob); }
+async function downloadPhoto(){ const it=cur(); $("pmMsg").textContent="Making the listing photo..."; try{ const b=await listingPNG(it.spec); saveFile(fileBase(it)+"-listing-photo.png",b); }catch(e){ $("pmMsg").textContent="Couldn't make the photo in this browser."; } }
 $("pmClose").addEventListener("click",closeProduct);
 $("pmodal").addEventListener("click",e=>{ if(e.target.id==="pmodal") closeProduct(); });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && !$("pmodal").hidden) closeProduct(); });
-$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and copy the listing text into Etsy."); log("Approved for Etsy: "+clean(it.spec.title),"core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
+$("pmPrev").addEventListener("click",()=>{ prevPage--; showPage(); }); $("pmNext").addEventListener("click",()=>{ prevPage++; showPage(); });
+$("pmApprove").addEventListener("click",()=>{ const it=cur(); setStatus("approved","Approved. Download the PDF and listing photo, then copy the listing text into Etsy."); log("Approved for Etsy: "+clean(it.spec.title),"core"); say(CORE,"Approved: "+clean(it.spec.title),3500); });
 let rejArm=0;
-$("pmReject").addEventListener("click",()=>{ if(Date.now()-rejArm>3000){ rejArm=Date.now(); $("pmReject").textContent="Click again to delete"; setTimeout(()=>$("pmReject").textContent="Reject",3000); return; }
-  const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); saveShop(); log("Rejected: "+clean(it.spec.title),"core"); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; });
-$("pmDownload").addEventListener("click",downloadPDF); $("pmDownload2").addEventListener("click",downloadPDF);
-$("pmListed").addEventListener("click",()=>{ setStatus("listed","Marked as live on Etsy. Add sales here as they come in."); log(clean(cur().spec.title)+" is live on Etsy","core"); });
+$("pmReject").addEventListener("click",async()=>{ if(Date.now()-rejArm>3000){ rejArm=Date.now(); $("pmReject").textContent="Click again to delete"; setTimeout(()=>$("pmReject").textContent="Reject",3000); return; }
+  const it=cur(); SHOP.items=SHOP.items.filter(x=>x!==it); closeProduct(); renderShopBoard(); $("pmReject").textContent="Reject"; log("Rejected: "+clean(it.spec.title),"core");
+  if(MODE==="db"){ try{ await api("/api/data",{action:"product.delete",id:it.id}); }catch(e){ refresh(); } } else saveLocal(); });
+["pmDownload","pmDownload2"].forEach(id=>$(id).addEventListener("click",downloadPDF)); ["pmPhoto","pmPhoto2"].forEach(id=>$(id).addEventListener("click",downloadPhoto));
+$("pmListed").addEventListener("click",()=>{ setStatus("listed","Marked as live on Etsy. Sales are added here as they come in."); log(clean(cur().spec.title)+" is live on Etsy","core"); });
 $("pmBack").addEventListener("click",()=>setStatus("approved","Moved back to ready to list."));
-$("pmSaleUp").addEventListener("click",()=>{ const it=cur(); it.sales++; saveShop(); renderShopBoard(); $("pmSales").textContent=it.sales; log("Real sale: "+clean(it.spec.title)+" ($"+Number(it.price).toFixed(2)+")","core sale"); say(CORE,"Real sale recorded: $"+Number(it.price).toFixed(2),3500); });
-$("pmSaleDown").addEventListener("click",()=>{ const it=cur(); if(it.sales>0){ it.sales--; saveShop(); renderShopBoard(); $("pmSales").textContent=it.sales; } });
-$("pmPrice").addEventListener("change",()=>{ const it=cur(), v=parseFloat($("pmPrice").value); if(v>0){ it.price=Math.round(v*100)/100; saveShop(); renderShopBoard(); $("pmMsg").textContent="Price saved."; } });
+$("pmSaleUp").addEventListener("click",()=>{ const it=cur(); updateItem(it,{sales:it.sales+1}); $("pmSales").textContent=it.sales; log("Real sale: "+clean(it.spec.title)+" ($"+Number(it.price).toFixed(2)+")","core sale"); say(CORE,"Real sale recorded: $"+Number(it.price).toFixed(2),3500); });
+$("pmSaleDown").addEventListener("click",()=>{ const it=cur(); if(it.sales>0){ updateItem(it,{sales:it.sales-1}); $("pmSales").textContent=it.sales; } });
+$("pmPrice").addEventListener("change",()=>{ const it=cur(), v=parseFloat($("pmPrice").value); if(v>0){ updateItem(it,{price:Math.round(v*100)/100}); $("pmMsg").textContent="Price saved."; } });
 document.querySelectorAll("[data-copy]").forEach(b=>b.addEventListener("click",()=>copyText($(b.dataset.copy))));
 
-/* ---------- the Core makes new products with AI ---------- */
+/* ---------- Research Lab ---------- */
+function ago(ts){ const m=Math.round((Date.now()-new Date(ts).getTime())/60000); return m<60?m+" min ago":m<1440?Math.round(m/60)+" hours ago":Math.round(m/1440)+" days ago"; }
+function renderLab(){
+  const box=$("ideaList"); box.innerHTML="";
+  $("labRun").textContent= LASTRUN ? "Last research: "+ago(LASTRUN.ran_at)+(LASTRUN.trigger==="daily"?" (daily run)":"") : (MODE==="db"?"No research yet. It runs every morning at about 7:40, or tap Run research now.":"");
+  $("labSummary").textContent= LASTRUN&&LASTRUN.summary ? LASTRUN.summary : "";
+  const list=IDEAS.filter(i=>i.status!=="passed");
+  $("sIdeas").textContent=list.filter(i=>i.status==="new").length;
+  if(!list.length){ box.innerHTML='<p class="note">'+(MODE==="db"?"No ideas yet.":"Ideas show up here once the Research Lab is running on the website.")+'</p>'; return; }
+  list.forEach(i=>{
+    const d=document.createElement("div"); d.className="idea";
+    const src=(i.sources||[]).slice(0,4).map(s=>'<a href="'+encodeURI(s.url)+'" target="_blank" rel="noopener">'+esc(String(s.title||s.url).slice(0,60))+'</a>').join("");
+    d.innerHTML='<div class="ihead"><b></b><span class="chip ok">'+esc(CATS[i.category]||i.category||"")+'</span><span class="iscore">'+(i.score||"-")+'/10</span></div><p class="iwhy"></p><p class="iev"></p><div class="isrc">'+src+'</div><div class="pmbtns"></div>';
+    d.querySelector("b").textContent=i.title; d.querySelector(".iwhy").textContent=i.why||""; d.querySelector(".iev").textContent=(i.evidence?"Evidence: "+i.evidence:"")+(i.price_hint?"  |  Suggested price: $"+Number(i.price_hint).toFixed(2):"");
+    const btns=d.querySelector(".pmbtns");
+    if(i.status==="new"){ const b=document.createElement("button"); b.className="good"; b.textContent="Build it"; b.onclick=()=>buildIdea(i,b); btns.appendChild(b);
+      const p=document.createElement("button"); p.textContent="Pass"; p.onclick=async()=>{ i.status="passed"; renderLab(); try{ await api("/api/data",{action:"idea.pass",id:i.id}); }catch(e){} }; btns.appendChild(p); }
+    else btns.innerHTML='<span class="note">'+({building:"Production is building this...",built:"Built. Check Needs your OK below."})[i.status]+'</span>';
+    box.appendChild(d);
+  });
+}
+async function buildIdea(i,btn){
+  btn.disabled=true; btn.textContent="Building..."; i.status="building"; $("labNote").textContent="Production is building \""+i.title+"\". This can take a minute or two.";
+  const pax=V.find(v=>v.id==="pax"); if(pax) say(pax,"On it: "+i.title,4000);
+  try{ const d=await api("/api/produce",{ideaId:i.id}); $("labNote").textContent="Built \""+i.title+"\". It's waiting for your OK in Etsy Production."; log("Production built: "+i.title,"core"); say(CORE,"New product ready for review.",3500); }
+  catch(e){ $("labNote").textContent=errCopy(e.code)+" "+(e.message||""); }
+  refresh();
+}
+$("btnResearch").addEventListener("click",async()=>{
+  if(MODE!=="db"){ $("labNote").textContent="The Research Lab runs on the Moneyland website once the database key is added in Vercel."; return; }
+  const b=$("btnResearch"); b.disabled=true; b.textContent="Researching..."; $("labNote").textContent="Searching Etsy trends and best sellers. This takes 1 to 3 minutes.";
+  const j=V.find(v=>v.id==="juno"); if(j) say(j,"Scanning Etsy trends now.",4000);
+  try{ const d=await api("/api/research",{}); $("labNote").textContent=(d.ideas||[]).length+" new ideas found."; log("Research Lab found "+(d.ideas||[]).length+" new ideas","core"); }
+  catch(e){ $("labNote").textContent=(e.message||errCopy(e.code)); }
+  finally{ b.disabled=false; b.textContent="Run research now"; refresh(); }
+});
+
+/* ---------- the Core makes new products ---------- */
 $("btnMake").addEventListener("click", async ()=>{
-  const btn=$("btnMake");
-  if(!sample){ $("makeNote").textContent="Making products needs AI. On the website, add your Claude API key in Vercel first."; return; }
-  btn.disabled=true; btn.textContent="The Core is working..."; $("makeNote").textContent="Writing 3 new products. This can take up to a minute.";
-  const have=SHOP.items.map(i=>clean(i.spec.title)).join("; ")||"none";
-  const sold=SHOP.items.filter(i=>i.sales>0).sort((a,b)=>b.sales-a.sales).slice(0,5).map(i=>clean(i.spec.title)+" ("+i.sales+" sold)").join("; ")||"no sales yet";
-  const prompt="You design printable PDF products sold as instant digital downloads on Etsy in the United States. Categories: kids (parents and teachers), planner (planners and trackers for adults), party (party and event printables). Best sellers so far: "+sold+". Lean toward what sells, but keep variety. Do not repeat these existing products: "+have+".\n\nCreate 3 NEW products, one from each category. Use plain, friendly words. No brand names, characters or trademarks. Each product uses one template. Exact JSON shapes:\n"
-   +'chart (routine, chore or habit grids): {"category":"kids"|"planner","template":"chart","title":"max 40 chars","subtitle":"max 70 chars","rowHead":"Task or Habit or Chore","rows":["max 30 chars"] (5-10 rows),"columns":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"] or other short labels (max 8),"footer":"max 60 chars or empty","fields":"e.g. Name: ______   Week of: ______"}\n'
-   +'reward: {"category":"kids","template":"reward","title":"max 36 chars","subtitle":"max 60 chars","spots":10|15|20|25|30,"goal":"max 60 chars or a blank line of underscores","prizeLabel":"max 45 chars"}\n'
-   +'math (problems are generated by code): {"category":"kids","template":"math","title":"max 40 chars","subtitle":"max 60 chars","op":"+"|"-"|"x","min":number,"max":number,"count":12|16|20|24|25|30}\n'
-   +'tracing (handwriting): {"category":"kids","template":"tracing","title":"max 40 chars","subtitle":"max 60 chars","words":["single words or letters, max 8 chars"] (4-6)}\n'
-   +'table (trackers and logs): {"category":"planner","template":"table","title":"max 40 chars","subtitle":"max 80 chars","fields":"max 90 chars of label: ______ blanks","columns":["max 18 chars"] (3-6),"rows":12-22,"totalRow":true|false,"notes":["max 100 chars"] (0-2)}\n'
-   +'planner (pages with boxes): {"category":"planner","template":"planner","title":"max 40 chars","subtitle":"max 70 chars","fields":"e.g. Date: ______","startHour":5-9,"sections":[{"head":"max 22 chars","kind":"lines"|"checks"|"hours","count":2-14,"wide":true|false}] (3-7 sections)}\n'
-   +'sign (party and events): {"category":"party","template":"sign","title":"2-5 words","subtitle":"max 40 chars, blanks like ______ allowed for names","lines":["max 50 chars"] (1-3)}\n'
-   +'Every product also has "accent": one of "purple","teal","orange","pink","blue","green","yellow","red","navy","sage", and "listing": {"etsyTitle":"keyword-rich Etsy title, max 140 chars","tags":[exactly 13 tags, each max 20 chars],"price": number between 2 and 6}.\n\nReply with only a JSON array of the 3 product objects. No emojis.';
+  const btn=$("btnMake"); btn.disabled=true; btn.textContent="The Core is working...";
+  $("makeNote").textContent="Designing 3 new products. This can take a minute or two.";
   try{
-    const arr=await sample.json(prompt,{cache:false});
-    const list=(Array.isArray(arr)?arr:(arr&&arr.products)||[]).filter(p=>p&&TPL_NAMES[p.template]&&p.title);
-    if(!list.length) throw {code:"invalid_json"};
-    list.slice(0,4).forEach(p=>{ p.listing=p.listing||{}; if(!CATS[p.category]) p.category=["reward","math","tracing"].includes(p.template)?"kids":p.template==="sign"?"party":"planner";
-      const price=Math.min(10,Math.max(1.5,Number(p.listing.price)||3)); SHOP.items.unshift({id:SHOP.nextId++,status:"review",created:Date.now(),spec:p,price,sales:0}); });
-    saveShop(); renderShopBoard();
-    $("makeNote").textContent=list.length+" new product"+(list.length>1?"s are":" is")+" waiting for your OK.";
-    log("Made "+list.length+" new real products for review","core"); say(CORE,list.length+" new products need your approval.",4000);
-    const d=V.find(v=>v.id==="mara"); if(d) say(d,"New printables ready for review.",3500);
-  }catch(e){ $("makeNote").textContent=errCopy(e.code); if(OFF_CODES.includes(e.code)) aiOff(e.code); }
+    if(MODE==="db"){ const d=await api("/api/produce",{count:3}); $("makeNote").textContent=(d.products||[]).length+" new products are waiting for your OK."; await refresh(); }
+    else {
+      if(!sample) throw {code:"not_configured"};
+      const have=SHOP.items.map(i=>clean(i.spec.title)).join("; ");
+      const arr=await sample.json("Design 3 new printable PDF products for an Etsy shop (one kids, one planner, one party). Do not repeat: "+have+". Use only these JSON shapes. Single page products may use templates chart, reward, math, tracing, table, planner, sign, letter, certificate, bingo, scramble, labels, with the same fields as these examples: "+JSON.stringify(SEEDS.slice(0,3).map(s=>s.pages?s.pages[0]:s)).slice(0,3500)+". Each product needs category, template, accent, title, subtitle and listing {etsyTitle, tags (13), price}. Reply with only a JSON array.",{cache:false});
+      (Array.isArray(arr)?arr:[]).filter(p=>p&&TPL_NAMES[p.template]&&p.title).slice(0,4).forEach(p=>{ p.listing=p.listing||{}; SHOP.items.unshift({id:SHOP.nextId++,status:"review",spec:p,price:Math.min(12,Math.max(2,Number(p.listing.price)||4)),sales:0,source:"core"}); });
+      saveLocal(); renderShopBoard(); $("makeNote").textContent="New products are waiting for your OK.";
+    }
+    log("The Core made new products for review","core"); say(CORE,"New products need your approval.",4000);
+  }catch(e){ $("makeNote").textContent=e.code==="not_configured"?"Making products needs the AI key and database set up on the website.":(e.message||errCopy(e.code)); }
   finally{ btn.disabled=false; btn.textContent="Core: make 3 new products"; }
 });
-renderShopBoard();
 if(window.claude && window.claude.use){ window.claude.use("downloads").then(x=>{ dl=x; }).catch(()=>{}); }
 
 /* ---------- boot ---------- */
@@ -1079,6 +1395,7 @@ async function tryRelay(){
   catch(e){ aiOff(); }
 }
 if(window.claude && window.claude.use){ window.claude.use("sample").then(s=>{ if(s) sample=s; else tryRelay(); }).catch(()=>tryRelay()); } else tryRelay();
+startData();
 })();
 </script>
 
